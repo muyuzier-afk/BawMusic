@@ -1,7 +1,7 @@
 'use client';
 
 import { Song } from '@/types/music';
-import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon } from './Icons';
+import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon } from './Icons';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
 
@@ -28,11 +28,28 @@ export function PlaybackControls({
 }: PlaybackControlsProps) {
   const modeLabel = playMode === 'single' ? '单曲循环' : playMode === 'shuffle' ? '随机播放' : '列表播放';
 
+  const renderPlayModeIcon = () => {
+    if (playMode === 'list') {
+      return <ListIcon size={16} />;
+    }
+
+    if (playMode === 'shuffle') {
+      return <ShuffleIcon size={16} />;
+    }
+
+    return (
+      <span className="play-mode-single-icon" aria-hidden="true">
+        <RepeatIcon size={16} />
+        <span className="play-mode-single-badge">1</span>
+      </span>
+    );
+  };
+
   return (
     <div className="controls-wrap">
       <div className="controls">
         <button className="control-btn control-btn-mode" onClick={onCyclePlayMode} aria-label={`当前模式：${modeLabel}`}>
-          <span className="play-mode-text">{modeLabel}</span>
+          {renderPlayModeIcon()}
         </button>
 
         <button className="control-btn" onClick={onPrev} aria-label="上一首">

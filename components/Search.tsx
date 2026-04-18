@@ -166,7 +166,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
 
       {showDropdown && (
         <div
-          className="glass"
+          className="glass search-dropdown"
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',

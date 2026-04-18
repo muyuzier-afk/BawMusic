@@ -52,23 +52,26 @@ export function parseLyric(lrc: string): { time: number; text: string; translati
   const lines = lrc.split('\n');
   const result: { time: number; text: string; translation?: string }[] = [];
   
-  const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
-  const tagRegex = /\[\w+:[^\]]*\]/;
+  const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]/g;
+  const metaTagRegex = /^\[[a-zA-Z]+:[^\]]*\]$/;
   
   for (const line of lines) {
-    if (tagRegex.test(line)) continue;
-    
-    const match = line.match(timeRegex);
-    if (match) {
+    const trimmed = line.trim();
+    if (!trimmed || metaTagRegex.test(trimmed)) continue;
+
+    const timeMatches = [...trimmed.matchAll(timeRegex)];
+    if (timeMatches.length === 0) continue;
+
+    const text = trimmed.replace(timeRegex, '').trim();
+    if (!text) continue;
+
+    for (const match of timeMatches) {
       const minutes = parseInt(match[1], 10);
       const seconds = parseInt(match[2], 10);
-      const ms = parseInt(match[3].padEnd(3, '0'), 10);
+      const msRaw = match[3] || '0';
+      const ms = parseInt(msRaw.padEnd(3, '0').slice(0, 3), 10);
       const time = minutes * 60 + seconds + ms / 1000;
-      const text = line.replace(timeRegex, '').trim();
-      
-      if (text) {
-        result.push({ time, text });
-      }
+      result.push({ time, text });
     }
   }
   

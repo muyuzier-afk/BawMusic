@@ -42,6 +42,7 @@ export function usePlayer(): UsePlayerReturn {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playModeRef = useRef<PlayMode>('list');
   const playNextRef = useRef<() => void>(() => {});
+  const loadRequestRef = useRef(0);
   
   const [currentSong, setCurrentSong] = useState<MusicInfo | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -158,25 +159,36 @@ export function usePlayer(): UsePlayerReturn {
   }, [volume]);
 
   const loadSong = useCallback(async (song: Song) => {
+    const requestId = ++loadRequestRef.current;
     setIsLoading(true);
     setError(null);
+    setLyric([]);
     
     try {
-      const [musicInfo, lyricData] = await Promise.all([
-        getMusicInfo(song.id),
-        getLyric(song.id)
-      ]);
+      const musicInfo = await getMusicInfo(song.id);
+
+      if (requestId !== loadRequestRef.current) return;
       
       setCurrentSong(musicInfo);
-      setLyric(parseLyric(lyricData.lrc));
       
       if (audioRef.current) {
         audioRef.current.src = musicInfo.url;
         void audioRef.current.play();
       }
+
+      try {
+        const lyricData = await getLyric(song.id);
+        if (requestId !== loadRequestRef.current) return;
+        setLyric(parseLyric(lyricData.lrc || ''));
+      } catch {
+        if (requestId !== loadRequestRef.current) return;
+        setLyric([]);
+      }
     } catch (err) {
+      if (requestId !== loadRequestRef.current) return;
       setError(err instanceof Error ? err.message : 'Failed to load song');
     } finally {
+      if (requestId !== loadRequestRef.current) return;
       setIsLoading(false);
     }
   }, []);
