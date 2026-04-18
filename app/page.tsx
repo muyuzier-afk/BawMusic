@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { usePlayer } from '@/hooks/usePlayer';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
@@ -32,8 +32,9 @@ export default function MusicPlayer() {
     playAt
   } = usePlayer();
   
-  const [currentView, setCurrentView] = useState<'discover' | 'library' | 'lyrics'>('discover');
+  const [currentView, setCurrentView] = useState<'discover' | 'library'>('discover');
   const [playlistOpen, setPlaylistOpen] = useState(false);
+  const [mobileLyricsOpen, setMobileLyricsOpen] = useState(false);
   
   const bgImage = useMemo(() => {
     return currentSong?.picUrl || '';
@@ -44,7 +45,23 @@ export default function MusicPlayer() {
   }, [playSong]);
   
   const showPlayer = currentSong !== null;
-  const showLyrics = currentView === 'lyrics' && lyric.length > 0 && currentSong !== null;
+  const openMobileLyrics = useCallback(() => {
+    if (!currentSong) return;
+
+    if (typeof window !== 'undefined' && !window.matchMedia('(max-width: 768px)').matches) {
+      return;
+    }
+
+    setMobileLyricsOpen(true);
+  }, [currentSong]);
+
+  const closeMobileLyrics = useCallback(() => {
+    setMobileLyricsOpen(false);
+  }, []);
+
+  useEffect(() => {
+    setMobileLyricsOpen(false);
+  }, [currentSong?.id]);
   
   return (
     <div className="app-container">
@@ -72,8 +89,9 @@ export default function MusicPlayer() {
             </button>
           </header>
           
-          {showPlayer && currentView !== 'lyrics' && (
-            <div className="play-page">
+          {showPlayer && (
+            <div className="player-shell">
+              <div className="play-page player-main">
               {isLoading && (
                 <div className="loading-spinner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
               )}
@@ -81,9 +99,13 @@ export default function MusicPlayer() {
               <img
                 src={currentSong.picUrl}
                 alt={currentSong.name}
-                className="album-cover"
+                className="album-cover album-cover-clickable"
                 style={{ opacity: isLoading ? 0.3 : 1 }}
+                onClick={openMobileLyrics}
               />
+              <button className="cover-lyric-hint" onClick={openMobileLyrics} type="button">
+                点击封面查看歌词
+              </button>
               
               <div className="song-info">
                 <div className="song-title">{currentSong.name}</div>
@@ -105,45 +127,13 @@ export default function MusicPlayer() {
                 onPrev={playPrev}
                 onToggleShuffle={toggleShuffle}
                 onToggleRepeat={toggleRepeat}
-                onOpenPlaylist={() => setPlaylistOpen(true)}
-                playlist={playlist}
-                currentIndex={currentIndex}
-                currentSong={currentSong}
               />
-            </div>
-          )}
-          
-          {showLyrics && (
-            <div className="play-page" style={{ paddingTop: '20px' }}>
-              <img
-                src={currentSong.picUrl}
-                alt={currentSong.name}
-                className="album-cover"
-                style={{ width: '180px', height: '180px' }}
-              />
-              
-              <ProgressBar
-                currentTime={currentTime}
-                duration={duration}
-                onSeek={seek}
-              />
-              
-              <PlaybackControls
-                isPlaying={isPlaying}
-                isShuffle={isShuffle}
-                isRepeat={isRepeat}
-                onTogglePlay={togglePlay}
-                onNext={playNext}
-                onPrev={playPrev}
-                onToggleShuffle={toggleShuffle}
-                onToggleRepeat={toggleRepeat}
-                onOpenPlaylist={() => setPlaylistOpen(true)}
-                playlist={playlist}
-                currentIndex={currentIndex}
-                currentSong={currentSong}
-              />
-              
-              <LyricsPanel lyrics={lyric} currentTime={currentTime} />
+              </div>
+
+              <aside className="desktop-lyrics-pane glass">
+                <div className="desktop-lyrics-title">歌词</div>
+                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" />
+              </aside>
             </div>
           )}
           
@@ -166,8 +156,22 @@ export default function MusicPlayer() {
         playlist={playlist}
         currentIndex={currentIndex}
         onPlayAt={playAt}
-        currentSong={currentSong}
       />
+
+      {showPlayer && mobileLyricsOpen && (
+        <div className="mobile-lyrics-overlay glass-strong" role="dialog" aria-modal="true">
+          <div className="mobile-lyrics-header">
+            <button className="mobile-lyrics-close" onClick={closeMobileLyrics} type="button">
+              返回封面
+            </button>
+            <div className="mobile-lyrics-meta">
+              <div className="mobile-lyrics-song">{currentSong.name}</div>
+              <div className="mobile-lyrics-artist">{currentSong.artists}</div>
+            </div>
+          </div>
+          <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
+        </div>
+      )}
     </div>
   );
 }

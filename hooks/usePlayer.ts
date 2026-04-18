@@ -34,6 +34,8 @@ interface UsePlayerReturn {
 
 export function usePlayer(): UsePlayerReturn {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isRepeatRef = useRef(false);
+  const playNextRef = useRef<() => void>(() => {});
   
   const [currentSong, setCurrentSong] = useState<MusicInfo | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -49,38 +51,60 @@ export function usePlayer(): UsePlayerReturn {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      audioRef.current = new Audio();
-      audioRef.current.volume = volume;
-      
-      const audio = audioRef.current;
-      
-      audio.addEventListener('timeupdate', () => {
-        setCurrentTime(audio.currentTime);
-      });
-      
-      audio.addEventListener('loadedmetadata', () => {
-        setDuration(audio.duration);
-      });
-      
-      audio.addEventListener('ended', () => {
-        if (isRepeat) {
-          audio.currentTime = 0;
-          audio.play();
-        } else {
-          playNext();
-        }
-      });
-      
-      audio.addEventListener('play', () => setIsPlaying(true));
-      audio.addEventListener('pause', () => setIsPlaying(false));
-      
-      return () => {
-        audio.pause();
-        audio.src = '';
-      };
-    }
+    isRepeatRef.current = isRepeat;
   }, [isRepeat]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const audio = new Audio();
+    audio.volume = volume;
+    audioRef.current = audio;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
+    const handleEnded = () => {
+      if (isRepeatRef.current) {
+        audio.currentTime = 0;
+        void audio.play();
+        return;
+      }
+
+      playNextRef.current();
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.pause();
+      audio.src = '';
+      audioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
 
   const loadSong = useCallback(async (song: Song) => {
     setIsLoading(true);
@@ -97,7 +121,7 @@ export function usePlayer(): UsePlayerReturn {
       
       if (audioRef.current) {
         audioRef.current.src = musicInfo.url;
-        audioRef.current.play();
+        void audioRef.current.play();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load song');
@@ -108,16 +132,16 @@ export function usePlayer(): UsePlayerReturn {
 
   const playSong = useCallback((song: Song) => {
     const existingIndex = playlist.findIndex(s => s.id === song.id);
+
     if (existingIndex !== -1) {
       setCurrentIndex(existingIndex);
-    } else {
-      setPlaylist(prev => [...prev, song]);
-      setCurrentIndex(prev => {
-        loadSong(song);
-        return playlist.length;
-      });
+      loadSong(song);
       return;
     }
+
+    const nextIndex = playlist.length;
+    setPlaylist(prev => [...prev, song]);
+    setCurrentIndex(nextIndex);
     loadSong(song);
   }, [playlist, loadSong]);
 
@@ -127,12 +151,14 @@ export function usePlayer(): UsePlayerReturn {
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play();
+      void audioRef.current.play();
     }
   }, [isPlaying, currentSong]);
 
   const play = useCallback(() => {
-    audioRef.current?.play();
+    if (audioRef.current) {
+      void audioRef.current.play();
+    }
   }, []);
 
   const pause = useCallback(() => {
@@ -187,6 +213,10 @@ export function usePlayer(): UsePlayerReturn {
     
     playAt(nextIndex);
   }, [playlist, currentIndex, isShuffle, isRepeat, playAt]);
+
+  useEffect(() => {
+    playNextRef.current = playNext;
+  }, [playNext]);
 
   const playPrev = useCallback(() => {
     if (playlist.length === 0) return;

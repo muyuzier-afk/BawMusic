@@ -1,10 +1,10 @@
 'use client';
 
-import { MusicIcon, DiscoverIcon, LibraryIcon, LyricIcon } from './Icons';
+import { DiscoverIcon, LibraryIcon } from './Icons';
 
 interface SidebarProps {
-  currentView: 'discover' | 'library' | 'lyrics';
-  onViewChange: (view: 'discover' | 'library' | 'lyrics') => void;
+  currentView: 'discover' | 'library';
+  onViewChange: (view: 'discover' | 'library') => void;
 }
 
 export function Sidebar({ currentView, onViewChange }: SidebarProps) {
@@ -28,13 +28,6 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
         <span>音乐库</span>
       </div>
       
-      <div
-        className={`sidebar-item ${currentView === 'lyrics' ? 'active' : ''}`}
-        onClick={() => onViewChange('lyrics')}
-      >
-        <LyricIcon size={20} />
-        <span>歌词</span>
-      </div>
     </nav>
   );
 }

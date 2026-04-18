@@ -17,6 +17,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -34,6 +35,8 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
   }, []);
 
   const search = useCallback(async (query: string) => {
+    const currentRequestId = ++requestIdRef.current;
+
     if (!query.trim()) {
       setSuggestions([]);
       setIsOpen(false);
@@ -41,18 +44,20 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
       return;
     }
 
-    console.log('Searching for:', query);
     setIsLoading(true);
     
     try {
       const results = await searchSongs(query.trim(), 5);
-      console.log('Search results:', results);
+      if (currentRequestId !== requestIdRef.current) return;
+
       setSuggestions(results.slice(0, 5));
       setIsOpen(true);
-    } catch (error) {
-      console.error('Search failed:', error);
+    } catch {
+      if (currentRequestId !== requestIdRef.current) return;
       setSuggestions([]);
     } finally {
+      if (currentRequestId !== requestIdRef.current) return;
+
       setIsLoading(false);
     }
   }, []);
@@ -66,6 +71,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
     }
 
     if (!value.trim()) {
+      requestIdRef.current += 1;
       setSuggestions([]);
       setIsOpen(false);
       setIsLoading(false);
@@ -80,7 +86,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
   };
 
   const handleSelect = (song: Song) => {
-    console.log('Selected song:', song);
+    requestIdRef.current += 1;
     setKeyword('');
     setSuggestions([]);
     setIsOpen(false);
@@ -88,6 +94,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
   };
 
   const handleClear = () => {
+    requestIdRef.current += 1;
     setKeyword('');
     setSuggestions([]);
     setIsOpen(false);

@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { Song } from '@/types/music';
-import { PlayIcon, PauseIcon, ListIcon, CloseIcon } from './Icons';
+import { PlayIcon, PauseIcon } from './Icons';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -13,10 +12,6 @@ interface PlaybackControlsProps {
   onPrev: () => void;
   onToggleShuffle: () => void;
   onToggleRepeat: () => void;
-  onOpenPlaylist: () => void;
-  playlist: Song[];
-  currentIndex: number;
-  currentSong: Song | null;
 }
 
 export function PlaybackControls({
@@ -27,14 +22,8 @@ export function PlaybackControls({
   onNext,
   onPrev,
   onToggleShuffle,
-  onToggleRepeat,
-  onOpenPlaylist,
-  playlist,
-  currentIndex,
-  currentSong
+  onToggleRepeat
 }: PlaybackControlsProps) {
-  const [playlistOpen, setPlaylistOpen] = useState(false);
-  
   return (
     <>
       <div className="controls">
@@ -93,7 +82,6 @@ interface PlaylistDrawerProps {
   playlist: Song[];
   currentIndex: number;
   onPlayAt: (index: number) => void;
-  currentSong: Song | null;
 }
 
 export function PlaylistDrawer({
@@ -101,8 +89,7 @@ export function PlaylistDrawer({
   onClose,
   playlist,
   currentIndex,
-  onPlayAt,
-  currentSong
+  onPlayAt
 }: PlaylistDrawerProps) {
   return (
     <>

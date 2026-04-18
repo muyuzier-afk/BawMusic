@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
+  experimental: {
+    allowedHosts: ['.monkeycode-ai.online'],
+  },
   images: {
     unoptimized: true,
     remotePatterns: [
