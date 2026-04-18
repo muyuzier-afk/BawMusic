@@ -246,7 +246,6 @@ export default function MusicPlayer() {
               关闭
             </button>
 
-            <img src="/logo.png" alt="BawMusic Logo" className="details-logo" />
             <h2 className="details-title">BawMusic</h2>
             <p className="details-subtitle">极简风在线音乐播放器</p>
 
@@ -267,7 +266,7 @@ export default function MusicPlayer() {
               </a>
             </div>
 
-            <div className="details-author">作者：Muyuzier-AFK</div>
+            <div className="details-author">作者：音四中某ZiHan</div>
           </section>
         </div>
       )}
