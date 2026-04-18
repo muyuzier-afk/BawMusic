@@ -38,3 +38,9 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 项目是 Next.js 16 应用，常用脚本为 `npm run dev`、`npm run build`、`npm run start`
   - `next.config.ts` 当前开启 `output: 'export'`，属于静态导出模式
+
+[提交前不要自动推送]
+- Date: 2026-04-18
+- Context: 用户在本次播放器功能迭代中明确纠正流程
+- Instructions:
+  - 在用户确认前不要执行 `git push`

@@ -11,34 +11,58 @@ import { Song } from '@/types/music';
 import { ListIcon } from '@/components/Icons';
 
 export default function MusicPlayer() {
+  const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
+
   const {
     currentSong,
     isPlaying,
     currentTime,
     duration,
-    isShuffle,
-    isRepeat,
+    playMode,
+    volume,
     playlist,
     currentIndex,
     lyric,
     isLoading,
+    notice,
     playSong,
     togglePlay,
     seek,
-    toggleShuffle,
-    toggleRepeat,
+    setVolume,
+    cyclePlayMode,
     playNext,
     playPrev,
-    playAt
+    playAt,
+    clearNotice
   } = usePlayer();
   
   const [currentView, setCurrentView] = useState<'discover' | 'library'>('discover');
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [mobileLyricsOpen, setMobileLyricsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   
   const bgImage = useMemo(() => {
     return currentSong?.picUrl || '';
   }, [currentSong?.picUrl]);
+
+  const activeLyricIndex = useMemo(() => {
+    if (lyric.length === 0) return -1;
+
+    for (let i = lyric.length - 1; i >= 0; i -= 1) {
+      if (lyric[i].time <= currentTime) {
+        return i;
+      }
+    }
+
+    return -1;
+  }, [lyric, currentTime]);
+
+  const mobileBlurValue = useMemo(() => {
+    const base = 26;
+    if (activeLyricIndex < 0) return `${base}px`;
+    const wave = (activeLyricIndex % 5) * 2;
+    return `${base + wave}px`;
+  }, [activeLyricIndex]);
   
   const handlePlaySong = useCallback((song: Song) => {
     playSong(song);
@@ -62,6 +86,15 @@ export default function MusicPlayer() {
   useEffect(() => {
     setMobileLyricsOpen(false);
   }, [currentSong?.id]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => {
+      clearNotice();
+    }, 2400);
+
+    return () => window.clearTimeout(timer);
+  }, [notice, clearNotice]);
   
   return (
     <div className="app-container">
@@ -81,9 +114,18 @@ export default function MusicPlayer() {
           <header className="top-bar glass">
             <SearchBar onSongSelect={handlePlaySong} />
             <button
+              className="details-btn details-btn-desktop"
+              onClick={() => setDetailsOpen(true)}
+              type="button"
+              style={{ marginLeft: 'auto' }}
+            >
+              项目详情
+            </button>
+
+            <button
               className="icon-btn"
               onClick={() => setPlaylistOpen(true)}
-              style={{ marginLeft: 'auto' }}
+              type="button"
             >
               <ListIcon size={22} />
             </button>
@@ -120,14 +162,16 @@ export default function MusicPlayer() {
               
               <PlaybackControls
                 isPlaying={isPlaying}
-                isShuffle={isShuffle}
-                isRepeat={isRepeat}
+                playMode={playMode}
+                volume={volume}
                 onTogglePlay={togglePlay}
                 onNext={playNext}
                 onPrev={playPrev}
-                onToggleShuffle={toggleShuffle}
-                onToggleRepeat={toggleRepeat}
+                onCyclePlayMode={cyclePlayMode}
+                onVolumeChange={setVolume}
               />
+
+              {notice && <div className="player-notice">{notice}</div>}
               </div>
 
               <aside className="desktop-lyrics-pane glass">
@@ -159,7 +203,12 @@ export default function MusicPlayer() {
       />
 
       {showPlayer && mobileLyricsOpen && (
-        <div className="mobile-lyrics-overlay glass-strong" role="dialog" aria-modal="true">
+        <div
+          className="mobile-lyrics-overlay glass-strong"
+          role="dialog"
+          aria-modal="true"
+          style={{ ['--mobile-lyrics-blur' as any]: mobileBlurValue }}
+        >
           <div className="mobile-lyrics-header">
             <button className="mobile-lyrics-close" onClick={closeMobileLyrics} type="button">
               返回封面
@@ -170,6 +219,47 @@ export default function MusicPlayer() {
             </div>
           </div>
           <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
+        </div>
+      )}
+
+      <button
+        className="details-btn details-btn-mobile"
+        onClick={() => setDetailsOpen(true)}
+        type="button"
+      >
+        项目详情
+      </button>
+
+      {detailsOpen && (
+        <div className="details-overlay" role="dialog" aria-modal="true" onClick={() => setDetailsOpen(false)}>
+          <section className="details-card glass-strong" onClick={(event) => event.stopPropagation()}>
+            <button className="details-close" onClick={() => setDetailsOpen(false)} type="button">
+              关闭
+            </button>
+
+            <img src="/logo.png" alt="BawMusic Logo" className="details-logo" />
+            <h2 className="details-title">BawMusic</h2>
+            <p className="details-subtitle">极简风在线音乐播放器</p>
+
+            <div className="details-section">
+              <h3>项目信息</h3>
+              <p>聚焦搜索、播放、歌词沉浸体验的 Web 音乐播放器，支持跨设备自适应交互。</p>
+            </div>
+
+            <div className="details-section">
+              <h3>技术栈</h3>
+              <p>Next.js 16、React 19、TypeScript、原生 CSS Variables。</p>
+            </div>
+
+            <div className="details-section">
+              <h3>项目仓库</h3>
+              <a className="details-link" href={repositoryUrl} target="_blank" rel="noreferrer">
+                {repositoryUrl}
+              </a>
+            </div>
+
+            <div className="details-author">作者：Muyuzier-AFK</div>
+          </section>
         </div>
       )}
     </div>

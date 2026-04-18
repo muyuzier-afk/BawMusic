@@ -1,60 +1,77 @@
-# BawMusic - 极简音乐播放器
+# BawMusic
 
-基于 Next.js + React 构建的极简风格在线音乐播放器，调用网易云音乐 API 实现歌曲搜索与播放。
+![BawMusic Logo](./public/logo.png)
 
-## 功能特性
+一个以播放体验为核心的在线音乐播放器，强调即时搜索、顺滑切歌与沉浸式歌词阅读。
 
-- 实时搜索 - 输入即搜索，显示搜索建议
-- 同步滚动歌词 - Apple Music 风格的歌词展示
-- 莫奈模糊背景 - 根据专辑封面取色的毛玻璃效果
-- 三端适配 - PC 侧边栏 / Pad 单列 / Mobile 全屏布局
-- 极简 SVG 图标 - 无品牌强调，用户与音乐优先
+## 亮点功能
+
+- 即搜即播：输入歌曲/歌手关键字，快速返回候选并一键开播
+- Apple Music 风格歌词：当前句高亮放大、邻近句渐弱、滚动居中聚焦
+- 多端一致体验：
+  - PC/Pad 右侧常驻歌词面板
+  - Mobile 点击封面进入全屏歌词
+- 完整播放控制：上一首、下一首、播放/暂停、音量滑杆动画
+- 三种播放模式：列表播放、随机播放、单曲循环，支持循环切换
+- 历史续播策略：当前搜索队列播完后，自动从历史记录衔接并提示
+- 本地记忆：保存播放记录、音量、播放模式
+
+## 项目信息
+
+- 作者：Muyuzier-AFK
+- 仓库地址：https://github.com/muyuzier-afk/BawMusic
 
 ## 技术栈
 
-- **框架**: Next.js 16 + React 19
-- **语言**: TypeScript
-- **样式**: CSS Variables + 原生 CSS
-- 
-## 开发
+- Next.js 16
+- React 19
+- TypeScript
+- CSS Variables + 原生 CSS 动画
+
+## 快速开始
 
 ```bash
 # 安装依赖
 npm install
 
-# 启动开发服务器
+# 启动开发环境
 npm run dev
 
-# 构建生产版本
+# 生产构建
 npm run build
+
+# 生产启动
+npm run start
 ```
 
-## 搜索功能说明
+## 使用说明
 
-1. 在搜索框输入歌曲名或歌手名
-2. 输入后 300ms 自动触发搜索
-3. 下拉列表显示最多 5 个搜索建议
-4. 点击建议项即可播放该歌曲
+1. 在顶部搜索框输入关键字选择歌曲
+2. 在播放区使用播放控制与模式切换
+3. 移动端点击封面查看全屏歌词
+4. 点击“项目详情”按钮查看技术栈与仓库信息
 
-## 项目结构
+## 目录结构
 
-```
+```text
 music-player/
 ├── app/
-│   ├── page.tsx      # 主页面
-│   ├── layout.tsx    # 布局
-│   └── globals.css   # 全局样式
+│   ├── page.tsx
+│   ├── layout.tsx
+│   └── globals.css
 ├── components/
-│   ├── Icons.tsx           # SVG 图标
-│   ├── ProgressBar.tsx     # 进度条
-│   ├── LyricsPanel.tsx     # 歌词面板
-│   ├── PlaybackControls.tsx # 播放控制
-│   ├── Search.tsx          # 搜索组件
-│   └── Sidebar.tsx         # 侧边栏
+│   ├── Icons.tsx
+│   ├── LyricsPanel.tsx
+│   ├── PlaybackControls.tsx
+│   ├── ProgressBar.tsx
+│   ├── Search.tsx
+│   └── Sidebar.tsx
 ├── hooks/
-│   └── usePlayer.ts   # 播放器状态管理
+│   └── usePlayer.ts
 ├── lib/
-│   └── api.ts         # API 调用
+│   └── api.ts
+├── public/
+│   └── logo.png
 └── types/
-    └── music.ts       # 类型定义
+    └── music.ts
 ```
