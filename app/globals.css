@@ -254,6 +254,7 @@ body {
   background: var(--color-surface);
   border-radius: 2px;
   cursor: pointer;
+  touch-action: none;
 }
 
 .progress-fill {
@@ -278,6 +279,10 @@ body {
 }
 
 .progress-track:hover .progress-thumb {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.progress-track.dragging .progress-thumb {
   transform: translate(-50%, -50%) scale(1);
 }
 
