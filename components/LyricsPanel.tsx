@@ -54,15 +54,17 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
       {lyrics.map((line, index) => {
         const isActive = index === currentIndex;
         const isPassed = index < currentIndex;
+        const relativeIndex = currentIndex === -1 ? 0 : index - currentIndex;
         const distance = currentIndex === -1 ? 99 : Math.abs(index - currentIndex);
         const isNear = distance === 1;
         const isFar = distance >= 2;
+        const positionClass = relativeIndex < 0 ? 'before' : relativeIndex > 0 ? 'after' : '';
         
         return (
           <div
             key={index}
             ref={isActive ? activeRef : null}
-            className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''} ${isNear ? 'near' : ''} ${isFar ? 'far' : ''}`}
+            className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''} ${isNear ? 'near' : ''} ${isFar ? 'far' : ''} ${positionClass}`}
           >
             {line.text}
           </div>

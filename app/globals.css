@@ -137,17 +137,11 @@ body {
 
 .desktop-lyrics-pane {
   margin: 18px 20px 20px 0;
-  border-radius: var(--radius-xl);
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-.desktop-lyrics-title {
-  padding: 18px 24px 10px;
-  font-size: 15px;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.08em;
+  background: transparent;
+  border: none;
 }
 
 .top-bar {
@@ -469,7 +463,7 @@ body {
 }
 
 .lyrics-container-desktop {
-  padding: 12px 26px 20px;
+  padding: 18px 28px 22px;
 }
 
 .lyrics-container-mobile {
@@ -495,7 +489,7 @@ body {
 
 .lyric-line.active {
   color: var(--color-text);
-  transform: scale(1.07);
+  transform: scale(1.08);
   text-shadow: 0 6px 22px rgba(255, 255, 255, 0.2);
 }
 
@@ -511,6 +505,34 @@ body {
 .lyric-line.far {
   color: rgba(255, 255, 255, 0.28);
   transform: scale(0.98);
+}
+
+.lyrics-container-desktop .lyric-line.before {
+  transform: perspective(900px) rotateX(18deg) translateY(-8px) scale(0.96);
+}
+
+.lyrics-container-desktop .lyric-line.after {
+  transform: perspective(900px) rotateX(-18deg) translateY(8px) scale(0.96);
+}
+
+.lyrics-container-desktop .lyric-line.before.near {
+  transform: perspective(900px) rotateX(10deg) translateY(-4px) scale(1);
+}
+
+.lyrics-container-desktop .lyric-line.after.near {
+  transform: perspective(900px) rotateX(-10deg) translateY(4px) scale(1);
+}
+
+.lyrics-container-desktop .lyric-line.before.far {
+  transform: perspective(900px) rotateX(24deg) translateY(-12px) scale(0.92);
+}
+
+.lyrics-container-desktop .lyric-line.after.far {
+  transform: perspective(900px) rotateX(-24deg) translateY(12px) scale(0.92);
+}
+
+.lyrics-container-desktop .lyric-line.active {
+  transform: scale(1.1);
 }
 
 .mobile-lyrics-bg {
@@ -900,36 +922,35 @@ body {
     gap: 16px;
   }
 
-  .cover-lyric-hint {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 14px;
-    margin-top: -4px;
-    border-radius: 999px;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: rgba(255, 255, 255, 0.82);
-    font-size: 13px;
-    cursor: pointer;
-  }
-
-  .cover-lyric-hint:active {
-    transform: scale(0.98);
-  }
-
   .play-page.lyrics-on-bg .mobile-lyrics-bg {
     position: absolute;
-    inset: 0;
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    bottom: calc(188px + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
-    padding: 14px 10px;
-    background: rgba(8, 8, 8, 0.28);
+    padding: 16px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, rgba(6, 6, 6, 0.34) 0%, rgba(6, 6, 6, 0.5) 100%);
     backdrop-filter: blur(var(--mobile-lyrics-blur, 26px)) saturate(180%);
     -webkit-backdrop-filter: blur(var(--mobile-lyrics-blur, 26px)) saturate(180%);
     transition: backdrop-filter 280ms ease;
     z-index: 1;
+    overflow: hidden;
+    pointer-events: auto;
+  }
+
+  .play-page.lyrics-on-bg .mobile-lyrics-bg::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 28%;
     pointer-events: none;
+    background: linear-gradient(to bottom, rgba(6, 6, 6, 0) 0%, rgba(6, 6, 6, 0.62) 100%);
   }
 
   .play-page.lyrics-on-bg > .album-cover,
@@ -941,7 +962,6 @@ body {
 
   .play-page.lyrics-on-bg > .progress-bar,
   .play-page.lyrics-on-bg > .controls-wrap,
-  .play-page.lyrics-on-bg > .cover-lyric-hint,
   .play-page.lyrics-on-bg > .player-notice,
   .play-page.lyrics-on-bg > .loading-spinner {
     position: relative;

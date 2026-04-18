@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, type MouseEvent } from 'react';
 import { usePlayer } from '@/hooks/usePlayer';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
@@ -83,6 +83,18 @@ export default function MusicPlayer() {
     setMobileLyricsOpen(false);
   }, []);
 
+  const handlePlayPageClick = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (!mobileLyricsOpen) return;
+
+    const target = event.target as HTMLElement;
+    const clickedLyrics = Boolean(target.closest('.mobile-lyrics-bg'));
+    const clickedBlank = target.classList.contains('play-page');
+
+    if (clickedLyrics || clickedBlank) {
+      closeMobileLyrics();
+    }
+  }, [mobileLyricsOpen, closeMobileLyrics]);
+
   useEffect(() => {
     setMobileLyricsOpen(false);
   }, [currentSong?.id]);
@@ -128,6 +140,7 @@ export default function MusicPlayer() {
               <div
                 className={`play-page player-main ${mobileLyricsOpen ? 'lyrics-on-bg' : ''}`}
                 style={mobileLyricsOpen ? ({ ['--mobile-lyrics-blur' as any]: mobileBlurValue }) : undefined}
+                onClick={handlePlayPageClick}
               >
               <div className="mobile-lyrics-bg" aria-hidden={!mobileLyricsOpen}>
                 <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
@@ -142,17 +155,11 @@ export default function MusicPlayer() {
                 alt={currentSong.name}
                 className="album-cover album-cover-clickable"
                 style={{ opacity: isLoading ? 0.3 : 1 }}
-                onClick={openMobileLyrics}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openMobileLyrics();
+                }}
               />
-              {mobileLyricsOpen ? (
-                <button className="cover-lyric-hint" onClick={closeMobileLyrics} type="button">
-                  返回封面
-                </button>
-              ) : (
-                <button className="cover-lyric-hint" onClick={openMobileLyrics} type="button">
-                  点击封面查看歌词
-                </button>
-              )}
               
               <div className="song-info">
                 <div className="song-title">{currentSong.name}</div>
@@ -179,8 +186,7 @@ export default function MusicPlayer() {
               {notice && <div className="player-notice">{notice}</div>}
               </div>
 
-              <aside className="desktop-lyrics-pane glass">
-                <div className="desktop-lyrics-title">歌词</div>
+              <aside className="desktop-lyrics-pane">
                 <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" />
               </aside>
             </div>
