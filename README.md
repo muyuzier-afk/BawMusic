@@ -1,5 +1,3 @@
-# BawMusic
-
 ![BawMusic Logo](https://img.cdn1.vip/i/69e3746b6a82a_1776514155.png)
 
 一个以播放体验为核心的在线音乐播放器，强调即时搜索、顺滑切歌与沉浸式歌词阅读。
