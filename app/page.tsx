@@ -125,7 +125,14 @@ export default function MusicPlayer() {
           
           {showPlayer && (
             <div className="player-shell">
-              <div className="play-page player-main">
+              <div
+                className={`play-page player-main ${mobileLyricsOpen ? 'lyrics-on-bg' : ''}`}
+                style={mobileLyricsOpen ? ({ ['--mobile-lyrics-blur' as any]: mobileBlurValue }) : undefined}
+              >
+              <div className="mobile-lyrics-bg" aria-hidden={!mobileLyricsOpen}>
+                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
+              </div>
+
               {isLoading && (
                 <div className="loading-spinner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
               )}
@@ -137,9 +144,15 @@ export default function MusicPlayer() {
                 style={{ opacity: isLoading ? 0.3 : 1 }}
                 onClick={openMobileLyrics}
               />
-              <button className="cover-lyric-hint" onClick={openMobileLyrics} type="button">
-                点击封面查看歌词
-              </button>
+              {mobileLyricsOpen ? (
+                <button className="cover-lyric-hint" onClick={closeMobileLyrics} type="button">
+                  返回封面
+                </button>
+              ) : (
+                <button className="cover-lyric-hint" onClick={openMobileLyrics} type="button">
+                  点击封面查看歌词
+                </button>
+              )}
               
               <div className="song-info">
                 <div className="song-title">{currentSong.name}</div>
@@ -193,26 +206,6 @@ export default function MusicPlayer() {
         currentIndex={currentIndex}
         onPlayAt={playAt}
       />
-
-      {showPlayer && mobileLyricsOpen && (
-        <div
-          className="mobile-lyrics-overlay glass-strong"
-          role="dialog"
-          aria-modal="true"
-          style={{ ['--mobile-lyrics-blur' as any]: mobileBlurValue }}
-        >
-          <div className="mobile-lyrics-header">
-            <button className="mobile-lyrics-close" onClick={closeMobileLyrics} type="button">
-              返回封面
-            </button>
-            <div className="mobile-lyrics-meta">
-              <div className="mobile-lyrics-song">{currentSong.name}</div>
-              <div className="mobile-lyrics-artist">{currentSong.artists}</div>
-            </div>
-          </div>
-          <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
-        </div>
-      )}
 
       <button
         className="details-btn details-btn-desktop-fixed"
