@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { CapacitorMusicControls } from 'capacitor-music-controls-plugin';
+import { normalizeMediaUrl } from '@/lib/media';
 
 export interface MediaControlTrack {
   title: string;
@@ -73,7 +74,7 @@ function getTrackFingerprint(track: MediaControlTrack) {
 }
 
 function normalizeCover(cover: string) {
-  const trimmed = cover.trim();
+  const trimmed = normalizeMediaUrl(cover);
   if (trimmed) return trimmed;
   return 'favicon.ico';
 }

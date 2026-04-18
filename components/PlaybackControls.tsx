@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { Song, AudioQuality } from '@/types/music';
+import { normalizeMediaUrl } from '@/lib/media';
 import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon } from './Icons';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
@@ -281,9 +282,9 @@ export function PlaylistDrawer({
         <div className="playlist-items">
           {playlist.map((song, index) => (
             <div
-              key={song.id}
-              className={`playlist-item-row ${swipingIndex === index ? 'swiping' : ''} ${swipingIndex === index && swipeOffset <= -88 ? 'armed' : ''}`}
-            >
+                key={`${song.id}-${index}`}
+                className={`playlist-item-row ${swipingIndex === index ? 'swiping' : ''} ${swipingIndex === index && swipeOffset <= -88 ? 'armed' : ''}`}
+              >
               <div className="playlist-item-delete">
                 删除
               </div>
@@ -298,7 +299,7 @@ export function PlaylistDrawer({
                 onClick={(event) => handleItemClick(index, event)}
               >
                 <img
-                  src={song.picUrl}
+                  src={normalizeMediaUrl(song.picUrl)}
                   alt={song.name}
                   className="playlist-item-cover"
                 />

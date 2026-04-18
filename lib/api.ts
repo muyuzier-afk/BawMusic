@@ -1,4 +1,5 @@
 import { Song, MusicInfo, LyricData, AudioQuality } from '@/types/music';
+import { normalizeMediaUrl } from '@/lib/media';
 
 const BASE_URL = 'https://api.chksz.top/api';
 
@@ -12,7 +13,7 @@ export async function searchSongs(keyword: string, limit = 30, offset = 0): Prom
       name: s.name,
       artists: s.artists,
       album: s.album,
-      picUrl: s.picUrl
+      picUrl: normalizeMediaUrl(s.picUrl)
     }));
   }
   throw new Error(data.msg || 'Search failed');
@@ -28,8 +29,8 @@ export async function getMusicInfo(id: number, level: AudioQuality = 'lossless')
       name: d.name,
       artists: d.artist || d.artists || '',
       album: d.album,
-      picUrl: d.picUrl,
-      url: d.url,
+      picUrl: normalizeMediaUrl(d.picUrl),
+      url: normalizeMediaUrl(d.url),
       br: d.br,
       level: d.level,
       size: d.size,

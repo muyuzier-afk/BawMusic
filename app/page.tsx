@@ -10,6 +10,7 @@ import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls'
 import { Sidebar } from '@/components/Sidebar';
 import { Song } from '@/types/music';
 import { ListIcon } from '@/components/Icons';
+import { normalizeMediaUrl } from '@/lib/media';
 
 export default function MusicPlayer() {
   const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
@@ -49,9 +50,10 @@ export default function MusicPlayer() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isNativeApp, setIsNativeApp] = useState(false);
   const handledSharedSongRef = useRef<number | null>(null);
+  const playSongByIdRef = useRef(playSongById);
   
   const bgImage = useMemo(() => {
-    return currentSong?.picUrl || '';
+    return normalizeMediaUrl(currentSong?.picUrl);
   }, [currentSong?.picUrl]);
 
   const activeLyricIndex = useMemo(() => {
@@ -141,20 +143,34 @@ export default function MusicPlayer() {
   }, []);
 
   useEffect(() => {
+    playSongByIdRef.current = playSongById;
+  }, [playSongById]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const songId = Number(new URL(window.location.href).searchParams.get('song'));
-    if (!Number.isFinite(songId) || songId <= 0 || handledSharedSongRef.current === songId) return;
+    const handleSongParam = () => {
+      const songId = Number(new URL(window.location.href).searchParams.get('song'));
+      if (!Number.isFinite(songId) || songId <= 0 || handledSharedSongRef.current === songId) return;
 
-    handledSharedSongRef.current = songId;
-    void playSongById(songId);
-  }, [playSongById]);
+      handledSharedSongRef.current = songId;
+      void playSongByIdRef.current(songId);
+    };
+
+    handleSongParam();
+    window.addEventListener('popstate', handleSongParam);
+
+    return () => {
+      window.removeEventListener('popstate', handleSongParam);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !currentSong) return;
 
     const url = new URL(window.location.href);
     url.searchParams.set('song', String(currentSong.id));
+    handledSharedSongRef.current = currentSong.id;
     window.history.replaceState({}, '', url.toString());
   }, [currentSong?.id]);
 
@@ -238,7 +254,7 @@ export default function MusicPlayer() {
               )}
               
               <img
-                src={currentSong.picUrl}
+                src={normalizeMediaUrl(currentSong.picUrl)}
                 alt={currentSong.name}
                 className="album-cover album-cover-clickable"
                 style={{ opacity: isLoading ? 0.3 : 1 }}

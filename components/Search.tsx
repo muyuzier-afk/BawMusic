@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Song } from '@/types/music';
 import { searchSongs } from '@/lib/api';
+import { normalizeMediaUrl } from '@/lib/media';
 import { SearchIcon, CloseIcon } from './Icons';
 
 interface SearchBarProps {
@@ -209,7 +210,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
                 }}
               >
                 <img
-                  src={song.picUrl}
+                  src={normalizeMediaUrl(song.picUrl)}
                   alt={song.name}
                   style={{
                     width: '44px',
