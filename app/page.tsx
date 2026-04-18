@@ -19,6 +19,7 @@ export default function MusicPlayer() {
     currentTime,
     duration,
     playMode,
+    audioQuality,
     volume,
     playlist,
     currentIndex,
@@ -29,10 +30,13 @@ export default function MusicPlayer() {
     togglePlay,
     seek,
     setVolume,
+    setAudioQuality,
     cyclePlayMode,
     playNext,
     playPrev,
     playAt,
+    movePlaylistItem,
+    removePlaylistItem,
     clearNotice
   } = usePlayer();
   
@@ -126,6 +130,18 @@ export default function MusicPlayer() {
           <header className="top-bar glass">
             <SearchBar onSongSelect={handlePlaySong} />
             <button
+              className="details-btn details-btn-mobile-inline"
+              onClick={() => setDetailsOpen(true)}
+              type="button"
+              aria-label="项目详情"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <line x1="12" y1="8" x2="12" y2="13" />
+                <circle cx="12" cy="16.5" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            </button>
+            <button
               className="icon-btn"
               onClick={() => setPlaylistOpen(true)}
               type="button"
@@ -175,11 +191,13 @@ export default function MusicPlayer() {
               <PlaybackControls
                 isPlaying={isPlaying}
                 playMode={playMode}
+                audioQuality={audioQuality}
                 volume={volume}
                 onTogglePlay={togglePlay}
                 onNext={playNext}
                 onPrev={playPrev}
                 onCyclePlayMode={cyclePlayMode}
+                onAudioQualityChange={setAudioQuality}
                 onVolumeChange={setVolume}
               />
 
@@ -211,23 +229,12 @@ export default function MusicPlayer() {
         playlist={playlist}
         currentIndex={currentIndex}
         onPlayAt={playAt}
+        onMoveItem={movePlaylistItem}
+        onRemoveItem={removePlaylistItem}
       />
 
       <button
         className="details-btn details-btn-desktop-fixed"
-        onClick={() => setDetailsOpen(true)}
-        type="button"
-        aria-label="项目详情"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <line x1="12" y1="8" x2="12" y2="13" />
-          <circle cx="12" cy="16.5" r="1" fill="currentColor" stroke="none" />
-        </svg>
-      </button>
-
-      <button
-        className="details-btn details-btn-mobile-fixed"
         onClick={() => setDetailsOpen(true)}
         type="button"
         aria-label="项目详情"

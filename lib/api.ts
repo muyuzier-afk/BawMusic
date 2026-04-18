@@ -1,4 +1,4 @@
-import { Song, MusicInfo, LyricData } from '@/types/music';
+import { Song, MusicInfo, LyricData, AudioQuality } from '@/types/music';
 
 const BASE_URL = 'https://api.chksz.top/api';
 
@@ -18,7 +18,7 @@ export async function searchSongs(keyword: string, limit = 30, offset = 0): Prom
   throw new Error(data.msg || 'Search failed');
 }
 
-export async function getMusicInfo(id: number, level = 'lossless'): Promise<MusicInfo> {
+export async function getMusicInfo(id: number, level: AudioQuality = 'lossless'): Promise<MusicInfo> {
   const response = await fetch(`${BASE_URL}/163_music?id=${id}&level=${level}&type=json`);
   const data = await response.json();
   if (data.code === 200) {

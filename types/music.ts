@@ -19,6 +19,8 @@ export interface MusicInfo {
   md5: string;
 }
 
+export type AudioQuality = 'standard' | 'exhigh' | 'lossless' | 'hires' | 'jymaster' | 'sky' | 'jyeffect';
+
 export interface LyricData {
   lrc: string;
   tlyric?: string;

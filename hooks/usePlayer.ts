@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Song, MusicInfo, LyricLine } from '@/types/music';
+import { Song, MusicInfo, LyricLine, AudioQuality } from '@/types/music';
 import { getMusicInfo, getLyric, parseLyric } from '@/lib/api';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
@@ -9,6 +9,21 @@ type PlayMode = 'list' | 'shuffle' | 'single';
 const STORAGE_HISTORY_KEY = 'bawmusic:play-history';
 const STORAGE_VOLUME_KEY = 'bawmusic:volume';
 const STORAGE_MODE_KEY = 'bawmusic:play-mode';
+const STORAGE_QUALITY_KEY = 'bawmusic:audio-quality';
+
+const QUALITY_LABELS: Record<AudioQuality, string> = {
+  standard: '标准音质',
+  exhigh: '极高音质',
+  lossless: '无损音质',
+  hires: 'Hi-Res（高解析度）音质',
+  jymaster: '超清母带',
+  sky: '天空音效',
+  jyeffect: '沉浸环绕声'
+};
+
+function isAudioQuality(value: string): value is AudioQuality {
+  return value === 'standard' || value === 'exhigh' || value === 'lossless' || value === 'hires' || value === 'jymaster' || value === 'sky' || value === 'jyeffect';
+}
 
 interface UsePlayerReturn {
   currentSong: MusicInfo | null;
@@ -17,6 +32,7 @@ interface UsePlayerReturn {
   duration: number;
   volume: number;
   playMode: PlayMode;
+  audioQuality: AudioQuality;
   playlist: Song[];
   currentIndex: number;
   lyric: LyricLine[];
@@ -29,18 +45,22 @@ interface UsePlayerReturn {
   pause: () => void;
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
+  setAudioQuality: (quality: AudioQuality) => void;
   cyclePlayMode: () => void;
   playNext: () => void;
   playPrev: () => void;
   addToPlaylist: (song: Song) => void;
   clearPlaylist: () => void;
   playAt: (index: number) => void;
+  movePlaylistItem: (fromIndex: number, toIndex: number) => void;
+  removePlaylistItem: (index: number) => void;
   clearNotice: () => void;
 }
 
 export function usePlayer(): UsePlayerReturn {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playModeRef = useRef<PlayMode>('list');
+  const audioQualityRef = useRef<AudioQuality>('lossless');
   const playNextRef = useRef<() => void>(() => {});
   const loadRequestRef = useRef(0);
   
@@ -50,6 +70,7 @@ export function usePlayer(): UsePlayerReturn {
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.8);
   const [playMode, setPlayMode] = useState<PlayMode>('list');
+  const [audioQuality, setAudioQualityState] = useState<AudioQuality>('lossless');
   const [playlist, setPlaylist] = useState<Song[]>([]);
   const [historyRecords, setHistoryRecords] = useState<Song[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -82,6 +103,11 @@ export function usePlayer(): UsePlayerReturn {
       if (cachedMode === 'list' || cachedMode === 'shuffle' || cachedMode === 'single') {
         setPlayMode(cachedMode);
       }
+
+      const cachedQuality = window.localStorage.getItem(STORAGE_QUALITY_KEY);
+      if (cachedQuality && isAudioQuality(cachedQuality)) {
+        setAudioQualityState(cachedQuality);
+      }
     } catch {
       setHistoryRecords([]);
     }
@@ -90,6 +116,10 @@ export function usePlayer(): UsePlayerReturn {
   useEffect(() => {
     playModeRef.current = playMode;
   }, [playMode]);
+
+  useEffect(() => {
+    audioQualityRef.current = audioQuality;
+  }, [audioQuality]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -105,6 +135,11 @@ export function usePlayer(): UsePlayerReturn {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(STORAGE_MODE_KEY, playMode);
   }, [playMode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(STORAGE_QUALITY_KEY, audioQuality);
+  }, [audioQuality]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -158,22 +193,40 @@ export function usePlayer(): UsePlayerReturn {
     }
   }, [volume]);
 
-  const loadSong = useCallback(async (song: Song) => {
+  const loadSong = useCallback(async (
+    song: Song,
+    options?: {
+      startTime?: number;
+      autoPlay?: boolean;
+    }
+  ) => {
     const requestId = ++loadRequestRef.current;
     setIsLoading(true);
     setError(null);
     setLyric([]);
     
     try {
-      const musicInfo = await getMusicInfo(song.id);
+      const musicInfo = await getMusicInfo(song.id, audioQualityRef.current);
 
       if (requestId !== loadRequestRef.current) return;
       
       setCurrentSong(musicInfo);
       
       if (audioRef.current) {
+        const resumeTime = options?.startTime;
+        if (typeof resumeTime === 'number' && resumeTime > 0) {
+          const setResumeTime = () => {
+            if (!audioRef.current) return;
+            audioRef.current.currentTime = Math.max(0, resumeTime);
+          };
+          audioRef.current.addEventListener('loadedmetadata', setResumeTime, { once: true });
+        }
+
         audioRef.current.src = musicInfo.url;
-        void audioRef.current.play();
+
+        if (options?.autoPlay !== false) {
+          void audioRef.current.play();
+        }
       }
 
       try {
@@ -256,6 +309,25 @@ export function usePlayer(): UsePlayerReturn {
     }
     setVolumeState(normalized);
   }, []);
+
+  const setAudioQuality = useCallback((quality: AudioQuality) => {
+    if (quality === audioQualityRef.current) return;
+
+    setAudioQualityState(quality);
+    setNotice(`已切换至${QUALITY_LABELS[quality]}`);
+
+    if (!currentSong) {
+      return;
+    }
+
+    const currentPosition = audioRef.current?.currentTime ?? 0;
+    const shouldAutoPlay = Boolean(isPlaying);
+
+    void loadSong(currentSong, {
+      startTime: currentPosition,
+      autoPlay: shouldAutoPlay
+    });
+  }, [currentSong, isPlaying, loadSong]);
 
   const cyclePlayMode = useCallback(() => {
     setPlayMode(prev => {
@@ -412,6 +484,66 @@ export function usePlayer(): UsePlayerReturn {
     });
   }, []);
 
+  const movePlaylistItem = useCallback((fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || toIndex < 0) return;
+    if (fromIndex >= playlist.length || toIndex >= playlist.length) return;
+
+    const nextPlaylist = [...playlist];
+    const [movedSong] = nextPlaylist.splice(fromIndex, 1);
+    if (!movedSong) return;
+    nextPlaylist.splice(toIndex, 0, movedSong);
+
+    setPlaylist(nextPlaylist);
+
+    setCurrentIndex(prev => {
+      if (prev === fromIndex) return toIndex;
+      if (fromIndex < toIndex && prev > fromIndex && prev <= toIndex) return prev - 1;
+      if (fromIndex > toIndex && prev >= toIndex && prev < fromIndex) return prev + 1;
+      return prev;
+    });
+  }, [playlist]);
+
+  const removePlaylistItem = useCallback((index: number) => {
+    if (index < 0 || index >= playlist.length) return;
+
+    const nextPlaylist = playlist.filter((_, itemIndex) => itemIndex !== index);
+    const removingCurrent = index === currentIndex;
+
+    setPlaylist(nextPlaylist);
+
+    if (removingCurrent) {
+      if (nextPlaylist.length === 0) {
+        setCurrentIndex(-1);
+        setCurrentSong(null);
+        setLyric([]);
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
+        setNotice('播放列表已清空');
+
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+        }
+        return;
+      }
+
+      const replacementIndex = Math.min(index, nextPlaylist.length - 1);
+      const replacementSong = nextPlaylist[replacementIndex];
+
+      setCurrentIndex(replacementIndex);
+      updateHistory(replacementSong);
+      setNotice(null);
+      loadSong(replacementSong);
+      return;
+    }
+
+    if (index < currentIndex) {
+      setCurrentIndex(prev => Math.max(0, prev - 1));
+    }
+  }, [playlist, currentIndex, loadSong, updateHistory]);
+
   const clearPlaylist = useCallback(() => {
     setPlaylist([]);
     setCurrentIndex(-1);
@@ -435,6 +567,7 @@ export function usePlayer(): UsePlayerReturn {
     duration,
     volume,
     playMode,
+    audioQuality,
     playlist,
     currentIndex,
     lyric,
@@ -447,10 +580,13 @@ export function usePlayer(): UsePlayerReturn {
     pause,
     seek,
     setVolume,
+    setAudioQuality,
     cyclePlayMode,
     playNext,
     playPrev,
     addToPlaylist,
+    movePlaylistItem,
+    removePlaylistItem,
     clearPlaylist,
     playAt,
     clearNotice
