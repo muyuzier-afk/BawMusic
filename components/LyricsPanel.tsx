@@ -66,7 +66,10 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
             ref={isActive ? activeRef : null}
             className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''} ${isNear ? 'near' : ''} ${isFar ? 'far' : ''} ${positionClass}`}
           >
-            {line.text}
+            <div className="lyric-line-main">{line.text}</div>
+            {line.translation && (
+              <div className="lyric-line-translation">{line.translation}</div>
+            )}
           </div>
         );
       })}

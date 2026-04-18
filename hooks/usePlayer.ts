@@ -302,7 +302,7 @@ export function usePlayer(): UsePlayerReturn {
       try {
         const lyricData = await getLyric(song.id);
         if (requestId !== loadRequestRef.current) return;
-        setLyric(parseLyric(lyricData.lrc || ''));
+        setLyric(parseLyric(lyricData.lrc || '', lyricData.tlyric || ''));
       } catch {
         if (requestId !== loadRequestRef.current) return;
         setLyric([]);
