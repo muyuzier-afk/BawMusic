@@ -276,8 +276,11 @@ export function PlaylistDrawer({
         </div>
         <div className="playlist-items">
           {playlist.map((song, index) => (
-            <div key={song.id} className="playlist-item-row">
-              <div className={`playlist-item-delete ${swipingIndex === index && swipeOffset <= -88 ? 'armed' : ''}`}>
+            <div
+              key={song.id}
+              className={`playlist-item-row ${swipingIndex === index ? 'swiping' : ''} ${swipingIndex === index && swipeOffset <= -88 ? 'armed' : ''}`}
+            >
+              <div className="playlist-item-delete">
                 删除
               </div>
               <div

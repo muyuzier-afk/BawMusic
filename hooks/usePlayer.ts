@@ -7,6 +7,8 @@ import { getMusicInfo, getLyric, parseLyric } from '@/lib/api';
 type PlayMode = 'list' | 'shuffle' | 'single';
 
 const STORAGE_HISTORY_KEY = 'bawmusic:play-history';
+const STORAGE_PLAYLIST_KEY = 'bawmusic:playlist';
+const STORAGE_PLAYLIST_INDEX_KEY = 'bawmusic:playlist-index';
 const STORAGE_VOLUME_KEY = 'bawmusic:volume';
 const STORAGE_MODE_KEY = 'bawmusic:play-mode';
 const STORAGE_QUALITY_KEY = 'bawmusic:audio-quality';
@@ -23,6 +25,19 @@ const QUALITY_LABELS: Record<AudioQuality, string> = {
 
 function isAudioQuality(value: string): value is AudioQuality {
   return value === 'standard' || value === 'exhigh' || value === 'lossless' || value === 'hires' || value === 'jymaster' || value === 'sky' || value === 'jyeffect';
+}
+
+function isSongList(value: unknown): value is Song[] {
+  if (!Array.isArray(value)) return false;
+  return value.every((song) => {
+    if (!song || typeof song !== 'object') return false;
+    const candidate = song as Partial<Song>;
+    return typeof candidate.id === 'number'
+      && typeof candidate.name === 'string'
+      && typeof candidate.artists === 'string'
+      && typeof candidate.album === 'string'
+      && typeof candidate.picUrl === 'string';
+  });
 }
 
 interface UsePlayerReturn {
@@ -82,34 +97,63 @@ export function usePlayer(): UsePlayerReturn {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    try {
-      const cachedHistory = window.localStorage.getItem(STORAGE_HISTORY_KEY);
-      if (cachedHistory) {
-        const parsed = JSON.parse(cachedHistory) as Song[];
-        if (Array.isArray(parsed)) {
+    const readValue = (key: string) => {
+      try {
+        return window.localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    };
+
+    const cachedHistory = readValue(STORAGE_HISTORY_KEY);
+    if (cachedHistory) {
+      try {
+        const parsed = JSON.parse(cachedHistory) as unknown;
+        if (isSongList(parsed)) {
           setHistoryRecords(parsed.slice(0, 120));
         }
+      } catch {
+        setHistoryRecords([]);
       }
+    }
 
-      const cachedVolume = window.localStorage.getItem(STORAGE_VOLUME_KEY);
-      if (cachedVolume) {
-        const parsedVolume = Number(cachedVolume);
-        if (!Number.isNaN(parsedVolume) && parsedVolume >= 0 && parsedVolume <= 1) {
-          setVolumeState(parsedVolume);
+    const cachedPlaylist = readValue(STORAGE_PLAYLIST_KEY);
+    if (cachedPlaylist) {
+      try {
+        const parsed = JSON.parse(cachedPlaylist) as unknown;
+        if (isSongList(parsed)) {
+          setPlaylist(parsed);
+
+          const cachedIndex = readValue(STORAGE_PLAYLIST_INDEX_KEY);
+          if (cachedIndex) {
+            const parsedIndex = Number(cachedIndex);
+            if (!Number.isNaN(parsedIndex) && parsedIndex >= 0 && parsedIndex < parsed.length) {
+              setCurrentIndex(parsedIndex);
+            }
+          }
         }
+      } catch {
+        setPlaylist([]);
+        setCurrentIndex(-1);
       }
+    }
 
-      const cachedMode = window.localStorage.getItem(STORAGE_MODE_KEY);
-      if (cachedMode === 'list' || cachedMode === 'shuffle' || cachedMode === 'single') {
-        setPlayMode(cachedMode);
+    const cachedVolume = readValue(STORAGE_VOLUME_KEY);
+    if (cachedVolume) {
+      const parsedVolume = Number(cachedVolume);
+      if (!Number.isNaN(parsedVolume) && parsedVolume >= 0 && parsedVolume <= 1) {
+        setVolumeState(parsedVolume);
       }
+    }
 
-      const cachedQuality = window.localStorage.getItem(STORAGE_QUALITY_KEY);
-      if (cachedQuality && isAudioQuality(cachedQuality)) {
-        setAudioQualityState(cachedQuality);
-      }
-    } catch {
-      setHistoryRecords([]);
+    const cachedMode = readValue(STORAGE_MODE_KEY);
+    if (cachedMode === 'list' || cachedMode === 'shuffle' || cachedMode === 'single') {
+      setPlayMode(cachedMode);
+    }
+
+    const cachedQuality = readValue(STORAGE_QUALITY_KEY);
+    if (cachedQuality && isAudioQuality(cachedQuality)) {
+      setAudioQualityState(cachedQuality);
     }
   }, []);
 
@@ -123,22 +167,48 @@ export function usePlayer(): UsePlayerReturn {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(historyRecords.slice(0, 120)));
+    try {
+      window.localStorage.setItem(STORAGE_HISTORY_KEY, JSON.stringify(historyRecords.slice(0, 120)));
+    } catch {
+      // ignore localStorage write failures
+    }
   }, [historyRecords]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_VOLUME_KEY, String(volume));
+    try {
+      window.localStorage.setItem(STORAGE_PLAYLIST_KEY, JSON.stringify(playlist));
+      window.localStorage.setItem(STORAGE_PLAYLIST_INDEX_KEY, String(currentIndex));
+    } catch {
+      // ignore localStorage write failures
+    }
+  }, [playlist, currentIndex]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(STORAGE_VOLUME_KEY, String(volume));
+    } catch {
+      // ignore localStorage write failures
+    }
   }, [volume]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_MODE_KEY, playMode);
+    try {
+      window.localStorage.setItem(STORAGE_MODE_KEY, playMode);
+    } catch {
+      // ignore localStorage write failures
+    }
   }, [playMode]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(STORAGE_QUALITY_KEY, audioQuality);
+    try {
+      window.localStorage.setItem(STORAGE_QUALITY_KEY, audioQuality);
+    } catch {
+      // ignore localStorage write failures
+    }
   }, [audioQuality]);
 
   useEffect(() => {
