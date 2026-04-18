@@ -144,3 +144,15 @@ export function CloseIcon({ size = 20 }: { size?: number }) {
     </svg>
   );
 }
+
+export function ShareIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.6" y1="10.8" x2="15.4" y2="6.2" />
+      <line x1="8.6" y1="13.2" x2="15.4" y2="17.8" />
+    </svg>
+  );
+}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, type MouseEvent } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef, type MouseEvent } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { usePlayer } from '@/hooks/usePlayer';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
@@ -27,6 +28,7 @@ export default function MusicPlayer() {
     isLoading,
     notice,
     playSong,
+    playSongById,
     togglePlay,
     seek,
     setVolume,
@@ -37,13 +39,16 @@ export default function MusicPlayer() {
     playAt,
     movePlaylistItem,
     removePlaylistItem,
-    clearNotice
+    clearNotice,
+    showNotice
   } = usePlayer();
   
   const [currentView, setCurrentView] = useState<'discover' | 'library'>('discover');
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [mobileLyricsOpen, setMobileLyricsOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isNativeApp, setIsNativeApp] = useState(false);
+  const handledSharedSongRef = useRef<number | null>(null);
   
   const bgImage = useMemo(() => {
     return currentSong?.picUrl || '';
@@ -71,6 +76,38 @@ export default function MusicPlayer() {
   const handlePlaySong = useCallback((song: Song) => {
     playSong(song);
   }, [playSong]);
+
+  const handleShareSong = useCallback(async () => {
+    if (!currentSong || typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('song', String(currentSong.id));
+    const shareText = `分享给你一首好歌！链接 ${url.toString()}`;
+
+    const copyWithFallback = async () => {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+        return;
+      }
+
+      const textarea = document.createElement('textarea');
+      textarea.value = shareText;
+      textarea.setAttribute('readonly', 'true');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    };
+
+    try {
+      await copyWithFallback();
+      showNotice('分享链接已复制到剪贴板');
+    } catch {
+      showNotice('复制分享链接失败');
+    }
+  }, [currentSong, showNotice]);
   
   const showPlayer = currentSong !== null;
   const openMobileLyrics = useCallback(() => {
@@ -100,8 +137,42 @@ export default function MusicPlayer() {
   }, [mobileLyricsOpen, closeMobileLyrics]);
 
   useEffect(() => {
+    setIsNativeApp(Capacitor.isNativePlatform());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const songId = Number(new URL(window.location.href).searchParams.get('song'));
+    if (!Number.isFinite(songId) || songId <= 0 || handledSharedSongRef.current === songId) return;
+
+    handledSharedSongRef.current = songId;
+    void playSongById(songId);
+  }, [playSongById]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !currentSong) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('song', String(currentSong.id));
+    window.history.replaceState({}, '', url.toString());
+  }, [currentSong?.id]);
+
+  useEffect(() => {
     setMobileLyricsOpen(false);
   }, [currentSong?.id]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (!Capacitor.isNativePlatform()) return;
+
+    const appBody = document.body;
+    appBody.classList.add('immersive-shell');
+
+    return () => {
+      appBody.classList.remove('immersive-shell');
+    };
+  }, []);
 
   useEffect(() => {
     if (!notice) return;
@@ -196,6 +267,8 @@ export default function MusicPlayer() {
                 onTogglePlay={togglePlay}
                 onNext={playNext}
                 onPrev={playPrev}
+                onShare={handleShareSong}
+                showShare={!isNativeApp && Boolean(currentSong)}
                 onCyclePlayMode={cyclePlayMode}
                 onAudioQualityChange={setAudioQuality}
                 onVolumeChange={setVolume}

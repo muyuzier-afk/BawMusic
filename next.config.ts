@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'export',
-  allowedDevOrigins: ['https://*.monkeycode-ai.online'],
+  allowedDevOrigins: ['*.monkeycode-ai.online'],
   images: {
     unoptimized: true,
     remotePatterns: [

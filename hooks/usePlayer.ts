@@ -3,6 +3,13 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Song, MusicInfo, LyricLine, AudioQuality } from '@/types/music';
 import { getMusicInfo, getLyric, parseLyric } from '@/lib/api';
+import {
+  bindNativeControlListeners,
+  clearMediaControls,
+  enableImmersiveMode,
+  syncMediaControls,
+  updateMediaPlaybackState
+} from '@/lib/nativeMediaControls';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
 
@@ -55,6 +62,7 @@ interface UsePlayerReturn {
   error: string | null;
   notice: string | null;
   playSong: (song: Song) => void;
+  playSongById: (id: number) => Promise<void>;
   togglePlay: () => void;
   play: () => void;
   pause: () => void;
@@ -70,6 +78,7 @@ interface UsePlayerReturn {
   movePlaylistItem: (fromIndex: number, toIndex: number) => void;
   removePlaylistItem: (index: number) => void;
   clearNotice: () => void;
+  showNotice: (message: string) => void;
 }
 
 export function usePlayer(): UsePlayerReturn {
@@ -77,6 +86,7 @@ export function usePlayer(): UsePlayerReturn {
   const playModeRef = useRef<PlayMode>('list');
   const audioQualityRef = useRef<AudioQuality>('lossless');
   const playNextRef = useRef<() => void>(() => {});
+  const playPrevRef = useRef<() => void>(() => {});
   const loadRequestRef = useRef(0);
   
   const [currentSong, setCurrentSong] = useState<MusicInfo | null>(null);
@@ -214,6 +224,8 @@ export function usePlayer(): UsePlayerReturn {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    void enableImmersiveMode();
+
     const audio = new Audio();
     audio.volume = volume;
     audioRef.current = audio;
@@ -268,6 +280,7 @@ export function usePlayer(): UsePlayerReturn {
     options?: {
       startTime?: number;
       autoPlay?: boolean;
+      resolvedMusicInfo?: MusicInfo;
     }
   ) => {
     const requestId = ++loadRequestRef.current;
@@ -276,7 +289,7 @@ export function usePlayer(): UsePlayerReturn {
     setLyric([]);
     
     try {
-      const musicInfo = await getMusicInfo(song.id, audioQualityRef.current);
+      const musicInfo = options?.resolvedMusicInfo ?? await getMusicInfo(song.id, audioQualityRef.current);
 
       if (requestId !== loadRequestRef.current) return;
       
@@ -343,6 +356,31 @@ export function usePlayer(): UsePlayerReturn {
     updateHistory(song);
     setNotice(null);
     loadSong(song);
+  }, [playlist, loadSong, updateHistory]);
+
+  const playSongById = useCallback(async (id: number) => {
+    setNotice(null);
+    setError(null);
+
+    try {
+      const musicInfo = await getMusicInfo(id, audioQualityRef.current);
+      const song: Song = {
+        id: musicInfo.id,
+        name: musicInfo.name,
+        artists: musicInfo.artists,
+        album: musicInfo.album,
+        picUrl: musicInfo.picUrl
+      };
+
+      const nextIndex = playlist.length;
+      setPlaylist(prev => [...prev, song]);
+      setCurrentIndex(nextIndex);
+      updateHistory(song);
+      await loadSong(song, { resolvedMusicInfo: musicInfo });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load shared song');
+      setNotice('分享链接中的歌曲加载失败');
+    }
   }, [playlist, loadSong, updateHistory]);
 
   const togglePlay = useCallback(() => {
@@ -548,6 +586,36 @@ export function usePlayer(): UsePlayerReturn {
     loadSong(prevSong);
   }, [playlist, historyRecords, currentIndex, ensurePlaylistByHistory, loadSong, updateHistory]);
 
+  useEffect(() => {
+    playPrevRef.current = playPrev;
+  }, [playPrev]);
+
+  useEffect(() => {
+    void bindNativeControlListeners({
+      onPlay: () => {
+        if (audioRef.current) {
+          void audioRef.current.play();
+        }
+      },
+      onPause: () => {
+        audioRef.current?.pause();
+      },
+      onNext: () => {
+        playNextRef.current();
+      },
+      onPrev: () => {
+        playPrevRef.current();
+      },
+      onSeekTo: (time) => {
+        if (audioRef.current) {
+          const safeTime = Math.max(0, time);
+          audioRef.current.currentTime = safeTime;
+          setCurrentTime(safeTime);
+        }
+      }
+    });
+  }, []);
+
   const addToPlaylist = useCallback((song: Song) => {
     setPlaylist(prev => {
       return [...prev, song];
@@ -619,6 +687,9 @@ export function usePlayer(): UsePlayerReturn {
     setCurrentIndex(-1);
     setCurrentSong(null);
     setLyric([]);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(false);
     setNotice(null);
     if (audioRef.current) {
       audioRef.current.pause();
@@ -626,8 +697,55 @@ export function usePlayer(): UsePlayerReturn {
     }
   }, []);
 
+  useEffect(() => {
+    if (!currentSong) {
+      void clearMediaControls();
+      return;
+    }
+
+    void syncMediaControls({
+      title: currentSong.name,
+      artist: currentSong.artists,
+      album: currentSong.album,
+      cover: currentSong.picUrl,
+      duration,
+      elapsed: currentTime,
+      isPlaying
+    }, {
+      onPlay: () => {
+        if (audioRef.current) {
+          void audioRef.current.play();
+        }
+      },
+      onPause: () => {
+        audioRef.current?.pause();
+      },
+      onNext: () => {
+        playNextRef.current();
+      },
+      onPrev: () => {
+        playPrevRef.current();
+      },
+      onSeekTo: (time) => {
+        if (audioRef.current) {
+          const safeTime = Math.max(0, time);
+          audioRef.current.currentTime = safeTime;
+          setCurrentTime(safeTime);
+        }
+      }
+    });
+  }, [currentSong, duration]);
+
+  useEffect(() => {
+    updateMediaPlaybackState(isPlaying, currentTime, duration);
+  }, [isPlaying, currentTime, duration]);
+
   const clearNotice = useCallback(() => {
     setNotice(null);
+  }, []);
+
+  const showNotice = useCallback((message: string) => {
+    setNotice(message);
   }, []);
 
   return {
@@ -645,6 +763,7 @@ export function usePlayer(): UsePlayerReturn {
     error,
     notice,
     playSong,
+    playSongById,
     togglePlay,
     play,
     pause,
@@ -659,6 +778,7 @@ export function usePlayer(): UsePlayerReturn {
     removePlaylistItem,
     clearPlaylist,
     playAt,
-    clearNotice
+    clearNotice,
+    showNotice
   };
 }

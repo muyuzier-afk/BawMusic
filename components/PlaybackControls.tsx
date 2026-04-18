@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { Song, AudioQuality } from '@/types/music';
-import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon } from './Icons';
+import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon } from './Icons';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
 
@@ -25,6 +25,8 @@ interface PlaybackControlsProps {
   onTogglePlay: () => void;
   onNext: () => void;
   onPrev: () => void;
+  onShare?: () => void;
+  showShare?: boolean;
   onCyclePlayMode: () => void;
   onAudioQualityChange: (quality: AudioQuality) => void;
   onVolumeChange: (volume: number) => void;
@@ -38,6 +40,8 @@ export function PlaybackControls({
   onTogglePlay,
   onNext,
   onPrev,
+  onShare,
+  showShare = false,
   onCyclePlayMode,
   onAudioQualityChange,
   onVolumeChange
@@ -69,10 +73,7 @@ export function PlaybackControls({
         </button>
 
         <button className="control-btn" onClick={onPrev} aria-label="上一首">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="19 20 9 12 19 4 19 20" fill="currentColor" stroke="none" />
-            <line x1="5" y1="19" x2="5" y2="5" strokeWidth="2" />
-          </svg>
+          <PrevIcon size={24} />
         </button>
 
         <button className="control-btn control-btn-main" onClick={onTogglePlay} aria-label={isPlaying ? '暂停' : '播放'}>
@@ -80,11 +81,14 @@ export function PlaybackControls({
         </button>
 
         <button className="control-btn" onClick={onNext} aria-label="下一首">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="5 4 15 12 5 20 5 4" fill="currentColor" stroke="none" />
-            <line x1="19" y1="5" x2="19" y2="19" strokeWidth="2" />
-          </svg>
+          <NextIcon size={24} />
         </button>
+
+        {showShare && onShare && (
+          <button className="control-btn control-btn-share" onClick={onShare} aria-label="分享当前歌曲">
+            <ShareIcon size={20} />
+          </button>
+        )}
 
         <label className="volume-control" aria-label="音量调节">
           <span className="volume-icon">{volume <= 0.02 ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}</span>
