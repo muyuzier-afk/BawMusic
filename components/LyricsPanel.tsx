@@ -6,9 +6,10 @@ import { LyricLine } from '@/types/music';
 interface LyricsPanelProps {
   lyrics: LyricLine[];
   currentTime: number;
+  variant?: 'default' | 'desktop' | 'mobile';
 }
 
-export function LyricsPanel({ lyrics, currentTime }: LyricsPanelProps) {
+export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: LyricsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
   
@@ -31,8 +32,10 @@ export function LyricsPanel({ lyrics, currentTime }: LyricsPanelProps) {
   
   if (lyrics.length === 0) {
     return (
-      <div className="lyrics-container" ref={containerRef}>
+      <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
+        <div className="lyric-spacer" aria-hidden="true" />
         <div className="lyric-line">暂无歌词</div>
+        <div className="lyric-spacer" aria-hidden="true" />
       </div>
     );
   }
@@ -46,21 +49,26 @@ export function LyricsPanel({ lyrics, currentTime }: LyricsPanelProps) {
   }
   
   return (
-    <div className="lyrics-container" ref={containerRef}>
+    <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
+      <div className="lyric-spacer" aria-hidden="true" />
       {lyrics.map((line, index) => {
         const isActive = index === currentIndex;
         const isPassed = index < currentIndex;
+        const distance = currentIndex === -1 ? 99 : Math.abs(index - currentIndex);
+        const isNear = distance === 1;
+        const isFar = distance >= 2;
         
         return (
           <div
             key={index}
             ref={isActive ? activeRef : null}
-            className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''}`}
+            className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''} ${isNear ? 'near' : ''} ${isFar ? 'far' : ''}`}
           >
             {line.text}
           </div>
         );
       })}
+      <div className="lyric-spacer" aria-hidden="true" />
     </div>
   );
 }
