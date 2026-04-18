@@ -1,0 +1,19 @@
+{
+  "$schema": "https://help.aliyun.com/esa_docs/schema.json#",
+  "version": 1,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": "out"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
