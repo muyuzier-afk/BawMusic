@@ -15,18 +15,7 @@
 - **框架**: Next.js 16 + React 19
 - **语言**: TypeScript
 - **样式**: CSS Variables + 原生 CSS
-- **API**: 网易云音乐 Freebase API
-
-## API 接口
-
-| 端点 | 说明 |
-|------|------|
-| `GET /163_search` | 搜索歌曲 |
-| `GET /163_music` | 获取播放地址 |
-| `GET /163_lyric` | 获取歌词 |
-
-基础地址: `https://api.chksz.top/api`
-
+- 
 ## 开发
 
 ```bash
@@ -69,9 +58,3 @@ music-player/
 └── types/
     └── music.ts       # 类型定义
 ```
-
-## 已知问题
-
-- 搜索功能在某些移动端浏览器可能需要多次点击
-- 部分歌曲可能因版权问题无法播放
-- 歌词获取取决于歌曲是否有对应翻译
