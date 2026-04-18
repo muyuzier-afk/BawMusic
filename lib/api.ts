@@ -48,13 +48,14 @@ export async function getLyric(id: number): Promise<LyricData> {
   throw new Error(data.msg || 'Failed to get lyric');
 }
 
-export function parseLyric(lrc: string): { time: number; text: string; translation?: string }[] {
+function parseTimedLyric(lrc: string): { time: number; text: string }[] {
   const lines = lrc.split('\n');
-  const result: { time: number; text: string; translation?: string }[] = [];
-  
-  const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{1,3}))?\]/g;
+  const result: { time: number; text: string }[] = [];
+
+  // Some sources use [00:08.83], others use [00:08:83].
+  const timeRegex = /\[(\d{2}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
   const metaTagRegex = /^\[[a-zA-Z]+:[^\]]*\]$/;
-  
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || metaTagRegex.test(trimmed)) continue;
@@ -74,6 +75,23 @@ export function parseLyric(lrc: string): { time: number; text: string; translati
       result.push({ time, text });
     }
   }
-  
+
   return result.sort((a, b) => a.time - b.time);
+}
+
+export function parseLyric(lrc: string, tlyric = ''): { time: number; text: string; translation?: string }[] {
+  const lyricLines = parseTimedLyric(lrc);
+  if (lyricLines.length === 0) return [];
+
+  const translationMap = new Map(
+    parseTimedLyric(tlyric).map((line) => [line.time.toFixed(3), line.text])
+  );
+
+  return lyricLines.map((line) => {
+    const translation = translationMap.get(line.time.toFixed(3));
+    return {
+      ...line,
+      translation: translation && translation !== line.text ? translation : undefined
+    };
+  });
 }
