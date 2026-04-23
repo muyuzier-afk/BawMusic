@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LyricLine } from '@/types/music';
+import { TranslateIcon } from './Icons';
 
 interface LyricsPanelProps {
   lyrics: LyricLine[];
@@ -12,24 +13,35 @@ interface LyricsPanelProps {
 export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: LyricsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
-  
+  const [showTranslation, setShowTranslation] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
+
   useEffect(() => {
     if (activeRef.current && containerRef.current) {
       const container = containerRef.current;
       const active = activeRef.current;
-      
+
       const containerRect = container.getBoundingClientRect();
       const activeRect = active.getBoundingClientRect();
-      
+
       const scrollTop = active.offsetTop - containerRect.height / 2 + activeRect.height / 2;
-      
+
       container.scrollTo({
         top: scrollTop,
         behavior: 'smooth'
       });
     }
   }, [currentTime]);
-  
+
+  const handleToggleTranslation = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setShowTranslation(prev => !prev);
+    setTimeout(() => setIsAnimating(false), 400);
+  };
+
+  const hasTranslation = lyrics.some(line => line.translation);
+
   if (lyrics.length === 0) {
     return (
       <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
@@ -39,7 +51,7 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
       </div>
     );
   }
-  
+
   let currentIndex = -1;
   for (let i = lyrics.length - 1; i >= 0; i--) {
     if (lyrics[i].time <= currentTime) {
@@ -47,9 +59,20 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
       break;
     }
   }
-  
+
   return (
     <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
+      {hasTranslation && (
+        <button
+          className={`lyric-translate-toggle ${showTranslation ? 'active' : ''}`}
+          onClick={handleToggleTranslation}
+          type="button"
+          aria-label={showTranslation ? '隐藏翻译' : '显示翻译'}
+        >
+          <TranslateIcon size={16} />
+          <span className="lyric-translate-toggle-text">{showTranslation ? '翻译' : '原文'}</span>
+        </button>
+      )}
       <div className="lyric-spacer" aria-hidden="true" />
       {lyrics.map((line, index) => {
         const isActive = index === currentIndex;
@@ -59,16 +82,17 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
         const isNear = distance === 1;
         const isFar = distance >= 2;
         const positionClass = relativeIndex < 0 ? 'before' : relativeIndex > 0 ? 'after' : '';
-        
+        const isBlurred = !isActive && distance >= 1;
+
         return (
           <div
             key={index}
             ref={isActive ? activeRef : null}
-            className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''} ${isNear ? 'near' : ''} ${isFar ? 'far' : ''} ${positionClass}`}
+            className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''} ${isNear ? 'near' : ''} ${isFar ? 'far' : ''} ${positionClass} ${isBlurred ? 'blurred' : ''}`}
           >
             <div className="lyric-line-main">{line.text}</div>
             {line.translation && (
-              <div className="lyric-line-translation">{line.translation}</div>
+              <div className={`lyric-line-translation ${showTranslation ? 'show' : 'hide'}`}>{line.translation}</div>
             )}
           </div>
         );
