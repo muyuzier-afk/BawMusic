@@ -77,6 +77,7 @@ interface UsePlayerReturn {
   playAt: (index: number) => void;
   movePlaylistItem: (fromIndex: number, toIndex: number) => void;
   removePlaylistItem: (index: number) => void;
+  removePlaylistItems: (indices: number[]) => void;
   clearNotice: () => void;
   showNotice: (message: string) => void;
 }
@@ -682,6 +683,58 @@ export function usePlayer(): UsePlayerReturn {
     }
   }, [playlist, currentIndex, loadSong, updateHistory]);
 
+  const removePlaylistItems = useCallback((indices: number[]) => {
+    if (indices.length === 0) return;
+
+    const sortedIndices = Array.from(new Set(indices)).sort((a, b) => b - a);
+    if (sortedIndices.some(i => i < 0 || i >= playlist.length)) return;
+
+    let nextPlaylist = [...playlist];
+    let nextCurrentIndex = currentIndex;
+
+    for (const index of sortedIndices) {
+      nextPlaylist.splice(index, 1);
+      if (index < nextCurrentIndex) {
+        nextCurrentIndex -= 1;
+      } else if (index === nextCurrentIndex) {
+        nextCurrentIndex = -1;
+      }
+    }
+
+    const removingCurrent = currentIndex >= 0 && indices.includes(currentIndex);
+
+    setPlaylist(nextPlaylist);
+
+    if (removingCurrent) {
+      if (nextPlaylist.length === 0) {
+        setCurrentIndex(-1);
+        setCurrentSong(null);
+        setLyric([]);
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
+        setNotice('选中歌曲已删除');
+
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+        }
+        return;
+      }
+
+      const replacementIndex = Math.min(Math.max(0, currentIndex), nextPlaylist.length - 1);
+      const replacementSong = nextPlaylist[replacementIndex];
+
+      setCurrentIndex(replacementIndex);
+      updateHistory(replacementSong);
+      setNotice(null);
+      loadSong(replacementSong);
+      return;
+    }
+
+    setCurrentIndex(Math.max(0, nextCurrentIndex));
+  }, [playlist, currentIndex, loadSong, updateHistory]);
+
   const clearPlaylist = useCallback(() => {
     setPlaylist([]);
     setCurrentIndex(-1);
@@ -777,6 +830,7 @@ export function usePlayer(): UsePlayerReturn {
     movePlaylistItem,
     removePlaylistItem,
     clearPlaylist,
+    removePlaylistItems,
     playAt,
     clearNotice,
     showNotice

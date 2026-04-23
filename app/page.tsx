@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { Song } from '@/types/music';
 import { ListIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
+import { downloadSong, sanitizeFilename } from '@/lib/download';
 
 export default function MusicPlayer() {
   const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
@@ -40,6 +41,8 @@ export default function MusicPlayer() {
     playAt,
     movePlaylistItem,
     removePlaylistItem,
+    removePlaylistItems,
+    clearPlaylist,
     clearNotice,
     showNotice
   } = usePlayer();
@@ -78,6 +81,18 @@ export default function MusicPlayer() {
   const handlePlaySong = useCallback((song: Song) => {
     playSong(song);
   }, [playSong]);
+
+  const handleDownloadSong = useCallback(async () => {
+    if (!currentSong) return;
+    try {
+      const ext = currentSong.level === 'lossless' || currentSong.level === 'hires' || currentSong.level === 'jymaster' || currentSong.level === 'sky' ? 'flac' : 'mp3';
+      const filename = `${sanitizeFilename(currentSong.artists)} - ${sanitizeFilename(currentSong.name)}.${ext}`;
+      await downloadSong(currentSong.url, filename);
+      showNotice('已开始下载');
+    } catch {
+      showNotice('下载失败，请稍后重试');
+    }
+  }, [currentSong, showNotice]);
 
   const handleShareSong = useCallback(async () => {
     if (!currentSong || typeof window === 'undefined') return;
@@ -285,6 +300,8 @@ export default function MusicPlayer() {
                 onPrev={playPrev}
                 onShare={handleShareSong}
                 showShare={!isNativeApp && Boolean(currentSong)}
+                onDownload={handleDownloadSong}
+                showDownload={Boolean(currentSong)}
                 onCyclePlayMode={cyclePlayMode}
                 onAudioQualityChange={setAudioQuality}
                 onVolumeChange={setVolume}
@@ -320,6 +337,8 @@ export default function MusicPlayer() {
         onPlayAt={playAt}
         onMoveItem={movePlaylistItem}
         onRemoveItem={removePlaylistItem}
+        onClearPlaylist={clearPlaylist}
+        onRemoveItems={removePlaylistItems}
       />
 
       <button

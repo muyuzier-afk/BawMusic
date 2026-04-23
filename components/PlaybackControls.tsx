@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { Song, AudioQuality } from '@/types/music';
 import { normalizeMediaUrl } from '@/lib/media';
-import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon } from './Icons';
+import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon, DownloadIcon, TrashIcon, CheckIcon } from './Icons';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
 
@@ -28,6 +28,8 @@ interface PlaybackControlsProps {
   onPrev: () => void;
   onShare?: () => void;
   showShare?: boolean;
+  onDownload?: () => void;
+  showDownload?: boolean;
   onCyclePlayMode: () => void;
   onAudioQualityChange: (quality: AudioQuality) => void;
   onVolumeChange: (volume: number) => void;
@@ -43,6 +45,8 @@ export function PlaybackControls({
   onPrev,
   onShare,
   showShare = false,
+  onDownload,
+  showDownload = false,
   onCyclePlayMode,
   onAudioQualityChange,
   onVolumeChange
@@ -91,6 +95,12 @@ export function PlaybackControls({
           </button>
         )}
 
+        {showDownload && onDownload && (
+          <button className="control-btn control-btn-download" onClick={onDownload} aria-label="下载当前歌曲">
+            <DownloadIcon size={20} />
+          </button>
+        )}
+
         <label className="volume-control" aria-label="音量调节">
           <span className="volume-icon">{volume <= 0.02 ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}</span>
           <input
@@ -131,6 +141,8 @@ interface PlaylistDrawerProps {
   onPlayAt: (index: number) => void;
   onMoveItem: (fromIndex: number, toIndex: number) => void;
   onRemoveItem: (index: number) => void;
+  onClearPlaylist?: () => void;
+  onRemoveItems?: (indices: number[]) => void;
 }
 
 export function PlaylistDrawer({
@@ -140,17 +152,39 @@ export function PlaylistDrawer({
   currentIndex,
   onPlayAt,
   onMoveItem,
-  onRemoveItem
+  onRemoveItem,
+  onClearPlaylist,
+  onRemoveItems
 }: PlaylistDrawerProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [swipingIndex, setSwipingIndex] = useState<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState(0);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const longPressTimerRef = useRef<number | null>(null);
   const gestureModeRef = useRef<'idle' | 'swipe' | 'drag'>('idle');
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(min-width: 769px)');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsDesktop(e.matches);
+    handler(mql);
+    const listener = (e: MediaQueryListEvent) => handler(e);
+    mql.addEventListener('change', listener);
+    return () => mql.removeEventListener('change', listener);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedIndices(new Set());
+      setShowClearConfirm(false);
+    }
+  }, [isOpen]);
 
   const clearPressTimer = useCallback(() => {
     if (longPressTimerRef.current !== null) {
@@ -260,6 +294,32 @@ export function PlaylistDrawer({
     onPlayAt(index);
   }, [onPlayAt]);
 
+  const toggleSelection = useCallback((index: number) => {
+    setSelectedIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleBatchDelete = useCallback(() => {
+    if (selectedIndices.size === 0 || !onRemoveItems) return;
+    onRemoveItems(Array.from(selectedIndices));
+    setSelectedIndices(new Set());
+  }, [selectedIndices, onRemoveItems]);
+
+  const handleClearPlaylist = useCallback(() => {
+    if (!onClearPlaylist) return;
+    onClearPlaylist();
+    setShowClearConfirm(false);
+  }, [onClearPlaylist]);
+
+  const hasSelection = selectedIndices.size > 0;
+
   return (
     <>
       {isOpen && (
@@ -279,6 +339,37 @@ export function PlaylistDrawer({
           <span className="playlist-title">播放列表</span>
           <span className="playlist-count">{playlist.length} 首歌曲</span>
         </div>
+
+        {isDesktop && (
+          <div className="playlist-toolbar">
+            {showClearConfirm ? (
+              <div className="playlist-toolbar-confirm">
+                <span className="playlist-toolbar-text">确定清空列表？</span>
+                <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleClearPlaylist} type="button">
+                  确定
+                </button>
+                <button className="playlist-toolbar-btn" onClick={() => setShowClearConfirm(false)} type="button">
+                  取消
+                </button>
+              </div>
+            ) : (
+              <div className="playlist-toolbar-actions">
+                {hasSelection && onRemoveItems && (
+                  <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleBatchDelete} type="button">
+                    <TrashIcon size={14} />
+                    删除选中 ({selectedIndices.size})
+                  </button>
+                )}
+                {onClearPlaylist && (
+                  <button className="playlist-toolbar-btn" onClick={() => setShowClearConfirm(true)} type="button">
+                    清空列表
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="playlist-items">
           {playlist.map((song, index) => (
             <div
@@ -298,6 +389,19 @@ export function PlaylistDrawer({
                 onTouchCancel={handleTouchCancel}
                 onClick={(event) => handleItemClick(index, event)}
               >
+                {isDesktop && (
+                  <button
+                    className={`playlist-checkbox ${selectedIndices.has(index) ? 'checked' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelection(index);
+                    }}
+                    type="button"
+                    aria-label={selectedIndices.has(index) ? '取消选中' : '选中'}
+                  >
+                    {selectedIndices.has(index) && <CheckIcon size={12} />}
+                  </button>
+                )}
                 <img
                   src={normalizeMediaUrl(song.picUrl)}
                   alt={song.name}
