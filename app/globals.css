@@ -514,6 +514,36 @@ body.immersive-shell {
   );
 }
 
+/* 自定义滚动条样式 */
+.lyrics-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lyrics-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lyrics-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.lyrics-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 针对 Firefox 的滚动条样式 */
+.lyrics-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* 针对 IE 和 Edge 的滚动条样式 */
+.lyrics-container {
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+}
+
 .lyrics-container-desktop {
   padding: 18px 28px 22px;
 }
