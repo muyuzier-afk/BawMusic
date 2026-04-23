@@ -617,12 +617,20 @@ body.immersive-shell {
   transform: scale(1.1);
 }
 
+/* Lyrics header */
+.lyrics-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 4px;
+  pointer-events: none;
+}
+
 /* Lyric translation toggle */
 .lyric-translate-toggle {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  z-index: 10;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
