@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LyricLine } from '@/types/music';
 import { TranslateIcon } from './Icons';
 
@@ -16,28 +16,31 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
   const [showTranslation, setShowTranslation] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  useEffect(() => {
+  const scrollToActive = useCallback(() => {
     if (activeRef.current && containerRef.current) {
       const container = containerRef.current;
       const active = activeRef.current;
-
       const containerRect = container.getBoundingClientRect();
       const activeRect = active.getBoundingClientRect();
-
       const scrollTop = active.offsetTop - containerRect.height / 2 + activeRect.height / 2;
-
-      container.scrollTo({
-        top: scrollTop,
-        behavior: 'smooth'
-      });
+      container.scrollTo({ top: scrollTop, behavior: 'smooth' });
     }
-  }, [currentTime]);
+  }, []);
 
-  const handleToggleTranslation = () => {
+  useEffect(() => {
+    scrollToActive();
+  }, [currentTime, scrollToActive]);
+
+  const handleToggleTranslation = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isAnimating) return;
     setIsAnimating(true);
     setShowTranslation(prev => !prev);
-    setTimeout(() => setIsAnimating(false), 400);
+    // Wait for collapse animation then re-center active lyric
+    setTimeout(() => {
+      setIsAnimating(false);
+      scrollToActive();
+    }, 350);
   };
 
   const hasTranslation = lyrics.some(line => line.translation);
@@ -62,17 +65,19 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
 
   return (
     <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
-      {hasTranslation && (
-        <button
-          className={`lyric-translate-toggle ${showTranslation ? 'active' : ''}`}
-          onClick={handleToggleTranslation}
-          type="button"
-          aria-label={showTranslation ? '隐藏翻译' : '显示翻译'}
-        >
-          <TranslateIcon size={16} />
-          <span className="lyric-translate-toggle-text">{showTranslation ? '翻译' : '原文'}</span>
-        </button>
-      )}
+      <div className="lyrics-header">
+        {hasTranslation && (
+          <button
+            className={`lyric-translate-toggle ${showTranslation ? 'active' : ''}`}
+            onClick={handleToggleTranslation}
+            type="button"
+            aria-label={showTranslation ? '隐藏翻译' : '显示翻译'}
+          >
+            <TranslateIcon size={16} />
+            <span className="lyric-translate-toggle-text">{showTranslation ? '翻译' : '原文'}</span>
+          </button>
+        )}
+      </div>
       <div className="lyric-spacer" aria-hidden="true" />
       {lyrics.map((line, index) => {
         const isActive = index === currentIndex;
