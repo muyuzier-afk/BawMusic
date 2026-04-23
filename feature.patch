@@ -1,0 +1,494 @@
+diff --git a/app/globals.css b/app/globals.css
+index fca4912..f235458 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -1145,3 +1145,97 @@ body.immersive-shell {
+     max-height: 85vh;
+   }
+ }
++
++/* Playlist toolbar for desktop */
++.playlist-toolbar {
++  display: flex;
++  align-items: center;
++  padding: 10px 20px;
++  border-bottom: 1px solid var(--color-border);
++  gap: 10px;
++}
++
++.playlist-toolbar-actions {
++  display: flex;
++  align-items: center;
++  gap: 10px;
++  width: 100%;
++}
++
++.playlist-toolbar-confirm {
++  display: flex;
++  align-items: center;
++  gap: 10px;
++  width: 100%;
++}
++
++.playlist-toolbar-text {
++  font-size: 14px;
++  color: var(--color-text-secondary);
++  flex: 1;
++}
++
++.playlist-toolbar-btn {
++  display: inline-flex;
++  align-items: center;
++  gap: 6px;
++  padding: 6px 12px;
++  border-radius: var(--radius-sm);
++  border: 1px solid var(--color-border);
++  background: rgba(255, 255, 255, 0.08);
++  color: var(--color-text);
++  font-size: 13px;
++  cursor: pointer;
++  transition: all var(--transition-fast);
++  white-space: nowrap;
++}
++
++.playlist-toolbar-btn:hover {
++  background: var(--color-surface-hover);
++}
++
++.playlist-toolbar-btn-danger {
++  background: rgba(206, 57, 57, 0.72);
++  border-color: rgba(206, 57, 57, 0.5);
++}
++
++.playlist-toolbar-btn-danger:hover {
++  background: rgba(232, 42, 42, 0.88);
++}
++
++/* Playlist checkbox */
++.playlist-checkbox {
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  width: 18px;
++  height: 18px;
++  border-radius: 4px;
++  border: 1.5px solid var(--color-text-tertiary);
++  background: transparent;
++  color: var(--color-text);
++  cursor: pointer;
++  padding: 0;
++  flex-shrink: 0;
++  transition: all var(--transition-fast);
++}
++
++.playlist-checkbox:hover {
++  border-color: var(--color-text-secondary);
++}
++
++.playlist-checkbox.checked {
++  background: var(--color-text);
++  border-color: var(--color-text);
++  color: var(--color-bg);
++}
++
++/* Download button */
++.control-btn-download {
++  width: 38px;
++  height: 38px;
++  padding: 0;
++  border-radius: 50%;
++  border: 1px solid var(--color-border);
++  background: rgba(255, 255, 255, 0.07);
++}
+diff --git a/app/page.tsx b/app/page.tsx
+index 5a3de62..b9e2eea 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/Sidebar';
+ import { Song } from '@/types/music';
+ import { ListIcon } from '@/components/Icons';
+ import { normalizeMediaUrl } from '@/lib/media';
++import { downloadSong, sanitizeFilename } from '@/lib/download';
+ 
+ export default function MusicPlayer() {
+   const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
+@@ -40,6 +41,8 @@ export default function MusicPlayer() {
+     playAt,
+     movePlaylistItem,
+     removePlaylistItem,
++    removePlaylistItems,
++    clearPlaylist,
+     clearNotice,
+     showNotice
+   } = usePlayer();
+@@ -79,6 +82,18 @@ export default function MusicPlayer() {
+     playSong(song);
+   }, [playSong]);
+ 
++  const handleDownloadSong = useCallback(async () => {
++    if (!currentSong) return;
++    try {
++      const ext = currentSong.level === 'lossless' || currentSong.level === 'hires' || currentSong.level === 'jymaster' || currentSong.level === 'sky' ? 'flac' : 'mp3';
++      const filename = `${sanitizeFilename(currentSong.artists)} - ${sanitizeFilename(currentSong.name)}.${ext}`;
++      await downloadSong(currentSong.url, filename);
++      showNotice('已开始下载');
++    } catch {
++      showNotice('下载失败，请稍后重试');
++    }
++  }, [currentSong, showNotice]);
++
+   const handleShareSong = useCallback(async () => {
+     if (!currentSong || typeof window === 'undefined') return;
+ 
+@@ -285,6 +300,8 @@ export default function MusicPlayer() {
+                 onPrev={playPrev}
+                 onShare={handleShareSong}
+                 showShare={!isNativeApp && Boolean(currentSong)}
++                onDownload={handleDownloadSong}
++                showDownload={Boolean(currentSong)}
+                 onCyclePlayMode={cyclePlayMode}
+                 onAudioQualityChange={setAudioQuality}
+                 onVolumeChange={setVolume}
+@@ -320,6 +337,8 @@ export default function MusicPlayer() {
+         onPlayAt={playAt}
+         onMoveItem={movePlaylistItem}
+         onRemoveItem={removePlaylistItem}
++        onClearPlaylist={clearPlaylist}
++        onRemoveItems={removePlaylistItems}
+       />
+ 
+       <button
+diff --git a/components/Icons.tsx b/components/Icons.tsx
+index 08f6b8c..067bd71 100644
+--- a/components/Icons.tsx
++++ b/components/Icons.tsx
+@@ -156,3 +156,32 @@ export function ShareIcon({ size = 20 }: { size?: number }) {
+     </svg>
+   );
+ }
++
++export function DownloadIcon({ size = 20 }: { size?: number }) {
++  return (
++    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
++      <polyline points="7 10 12 15 17 10" />
++      <line x1="12" y1="15" x2="12" y2="3" />
++    </svg>
++  );
++}
++
++export function TrashIcon({ size = 20 }: { size?: number }) {
++  return (
++    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++      <polyline points="3 6 5 6 21 6" />
++      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
++      <line x1="10" y1="11" x2="10" y2="17" />
++      <line x1="14" y1="11" x2="14" y2="17" />
++    </svg>
++  );
++}
++
++export function CheckIcon({ size = 20 }: { size?: number }) {
++  return (
++    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
++      <polyline points="20 6 9 17 4 12" />
++    </svg>
++  );
++}
+diff --git a/components/PlaybackControls.tsx b/components/PlaybackControls.tsx
+index 7b8c69e..00f4f82 100644
+--- a/components/PlaybackControls.tsx
++++ b/components/PlaybackControls.tsx
+@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
+ import type { MouseEvent, TouchEvent } from 'react';
+ import { Song, AudioQuality } from '@/types/music';
+ import { normalizeMediaUrl } from '@/lib/media';
+-import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon } from './Icons';
++import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon, DownloadIcon, TrashIcon, CheckIcon } from './Icons';
+ 
+ type PlayMode = 'list' | 'shuffle' | 'single';
+ 
+@@ -28,6 +28,8 @@ interface PlaybackControlsProps {
+   onPrev: () => void;
+   onShare?: () => void;
+   showShare?: boolean;
++  onDownload?: () => void;
++  showDownload?: boolean;
+   onCyclePlayMode: () => void;
+   onAudioQualityChange: (quality: AudioQuality) => void;
+   onVolumeChange: (volume: number) => void;
+@@ -43,6 +45,8 @@ export function PlaybackControls({
+   onPrev,
+   onShare,
+   showShare = false,
++  onDownload,
++  showDownload = false,
+   onCyclePlayMode,
+   onAudioQualityChange,
+   onVolumeChange
+@@ -91,6 +95,12 @@ export function PlaybackControls({
+           </button>
+         )}
+ 
++        {showDownload && onDownload && (
++          <button className="control-btn control-btn-download" onClick={onDownload} aria-label="下载当前歌曲">
++            <DownloadIcon size={20} />
++          </button>
++        )}
++
+         <label className="volume-control" aria-label="音量调节">
+           <span className="volume-icon">{volume <= 0.02 ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}</span>
+           <input
+@@ -131,6 +141,8 @@ interface PlaylistDrawerProps {
+   onPlayAt: (index: number) => void;
+   onMoveItem: (fromIndex: number, toIndex: number) => void;
+   onRemoveItem: (index: number) => void;
++  onClearPlaylist?: () => void;
++  onRemoveItems?: (indices: number[]) => void;
+ }
+ 
+ export function PlaylistDrawer({
+@@ -140,11 +152,16 @@ export function PlaylistDrawer({
+   currentIndex,
+   onPlayAt,
+   onMoveItem,
+-  onRemoveItem
++  onRemoveItem,
++  onClearPlaylist,
++  onRemoveItems
+ }: PlaylistDrawerProps) {
+   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+   const [swipingIndex, setSwipingIndex] = useState<number | null>(null);
+   const [swipeOffset, setSwipeOffset] = useState(0);
++  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
++  const [isDesktop, setIsDesktop] = useState(false);
++  const [showClearConfirm, setShowClearConfirm] = useState(false);
+ 
+   const longPressTimerRef = useRef<number | null>(null);
+   const gestureModeRef = useRef<'idle' | 'swipe' | 'drag'>('idle');
+@@ -152,6 +169,23 @@ export function PlaylistDrawer({
+   const startYRef = useRef(0);
+   const suppressClickRef = useRef(false);
+ 
++  useEffect(() => {
++    if (typeof window === 'undefined') return;
++    const mql = window.matchMedia('(min-width: 769px)');
++    const handler = (e: MediaQueryListEvent | MediaQueryList) => setIsDesktop(e.matches);
++    handler(mql);
++    const listener = (e: MediaQueryListEvent) => handler(e);
++    mql.addEventListener('change', listener);
++    return () => mql.removeEventListener('change', listener);
++  }, []);
++
++  useEffect(() => {
++    if (!isOpen) {
++      setSelectedIndices(new Set());
++      setShowClearConfirm(false);
++    }
++  }, [isOpen]);
++
+   const clearPressTimer = useCallback(() => {
+     if (longPressTimerRef.current !== null) {
+       window.clearTimeout(longPressTimerRef.current);
+@@ -260,6 +294,32 @@ export function PlaylistDrawer({
+     onPlayAt(index);
+   }, [onPlayAt]);
+ 
++  const toggleSelection = useCallback((index: number) => {
++    setSelectedIndices(prev => {
++      const next = new Set(prev);
++      if (next.has(index)) {
++        next.delete(index);
++      } else {
++        next.add(index);
++      }
++      return next;
++    });
++  }, []);
++
++  const handleBatchDelete = useCallback(() => {
++    if (selectedIndices.size === 0 || !onRemoveItems) return;
++    onRemoveItems(Array.from(selectedIndices));
++    setSelectedIndices(new Set());
++  }, [selectedIndices, onRemoveItems]);
++
++  const handleClearPlaylist = useCallback(() => {
++    if (!onClearPlaylist) return;
++    onClearPlaylist();
++    setShowClearConfirm(false);
++  }, [onClearPlaylist]);
++
++  const hasSelection = selectedIndices.size > 0;
++
+   return (
+     <>
+       {isOpen && (
+@@ -279,6 +339,37 @@ export function PlaylistDrawer({
+           <span className="playlist-title">播放列表</span>
+           <span className="playlist-count">{playlist.length} 首歌曲</span>
+         </div>
++
++        {isDesktop && (
++          <div className="playlist-toolbar">
++            {showClearConfirm ? (
++              <div className="playlist-toolbar-confirm">
++                <span className="playlist-toolbar-text">确定清空列表？</span>
++                <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleClearPlaylist} type="button">
++                  确定
++                </button>
++                <button className="playlist-toolbar-btn" onClick={() => setShowClearConfirm(false)} type="button">
++                  取消
++                </button>
++              </div>
++            ) : (
++              <div className="playlist-toolbar-actions">
++                {hasSelection && onRemoveItems && (
++                  <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleBatchDelete} type="button">
++                    <TrashIcon size={14} />
++                    删除选中 ({selectedIndices.size})
++                  </button>
++                )}
++                {onClearPlaylist && (
++                  <button className="playlist-toolbar-btn" onClick={() => setShowClearConfirm(true)} type="button">
++                    清空列表
++                  </button>
++                )}
++              </div>
++            )}
++          </div>
++        )}
++
+         <div className="playlist-items">
+           {playlist.map((song, index) => (
+             <div
+@@ -298,6 +389,19 @@ export function PlaylistDrawer({
+                 onTouchCancel={handleTouchCancel}
+                 onClick={(event) => handleItemClick(index, event)}
+               >
++                {isDesktop && (
++                  <button
++                    className={`playlist-checkbox ${selectedIndices.has(index) ? 'checked' : ''}`}
++                    onClick={(e) => {
++                      e.stopPropagation();
++                      toggleSelection(index);
++                    }}
++                    type="button"
++                    aria-label={selectedIndices.has(index) ? '取消选中' : '选中'}
++                  >
++                    {selectedIndices.has(index) && <CheckIcon size={12} />}
++                  </button>
++                )}
+                 <img
+                   src={normalizeMediaUrl(song.picUrl)}
+                   alt={song.name}
+diff --git a/hooks/usePlayer.ts b/hooks/usePlayer.ts
+index 7d55bb6..6381e14 100644
+--- a/hooks/usePlayer.ts
++++ b/hooks/usePlayer.ts
+@@ -77,6 +77,7 @@ interface UsePlayerReturn {
+   playAt: (index: number) => void;
+   movePlaylistItem: (fromIndex: number, toIndex: number) => void;
+   removePlaylistItem: (index: number) => void;
++  removePlaylistItems: (indices: number[]) => void;
+   clearNotice: () => void;
+   showNotice: (message: string) => void;
+ }
+@@ -682,6 +683,58 @@ export function usePlayer(): UsePlayerReturn {
+     }
+   }, [playlist, currentIndex, loadSong, updateHistory]);
+ 
++  const removePlaylistItems = useCallback((indices: number[]) => {
++    if (indices.length === 0) return;
++
++    const sortedIndices = Array.from(new Set(indices)).sort((a, b) => b - a);
++    if (sortedIndices.some(i => i < 0 || i >= playlist.length)) return;
++
++    let nextPlaylist = [...playlist];
++    let nextCurrentIndex = currentIndex;
++
++    for (const index of sortedIndices) {
++      nextPlaylist.splice(index, 1);
++      if (index < nextCurrentIndex) {
++        nextCurrentIndex -= 1;
++      } else if (index === nextCurrentIndex) {
++        nextCurrentIndex = -1;
++      }
++    }
++
++    const removingCurrent = currentIndex >= 0 && indices.includes(currentIndex);
++
++    setPlaylist(nextPlaylist);
++
++    if (removingCurrent) {
++      if (nextPlaylist.length === 0) {
++        setCurrentIndex(-1);
++        setCurrentSong(null);
++        setLyric([]);
++        setCurrentTime(0);
++        setDuration(0);
++        setIsPlaying(false);
++        setNotice('选中歌曲已删除');
++
++        if (audioRef.current) {
++          audioRef.current.pause();
++          audioRef.current.src = '';
++        }
++        return;
++      }
++
++      const replacementIndex = Math.min(Math.max(0, currentIndex), nextPlaylist.length - 1);
++      const replacementSong = nextPlaylist[replacementIndex];
++
++      setCurrentIndex(replacementIndex);
++      updateHistory(replacementSong);
++      setNotice(null);
++      loadSong(replacementSong);
++      return;
++    }
++
++    setCurrentIndex(Math.max(0, nextCurrentIndex));
++  }, [playlist, currentIndex, loadSong, updateHistory]);
++
+   const clearPlaylist = useCallback(() => {
+     setPlaylist([]);
+     setCurrentIndex(-1);
+@@ -777,6 +830,7 @@ export function usePlayer(): UsePlayerReturn {
+     movePlaylistItem,
+     removePlaylistItem,
+     clearPlaylist,
++    removePlaylistItems,
+     playAt,
+     clearNotice,
+     showNotice
+diff --git a/lib/download.ts b/lib/download.ts
+new file mode 100644
+index 0000000..2870fb0
+--- /dev/null
++++ b/lib/download.ts
+@@ -0,0 +1,26 @@
++export function sanitizeFilename(name: string): string {
++  const illegalChars = /[\\/:*?"<>|]/g;
++  return name.replace(illegalChars, '_');
++}
++
++export async function downloadSong(url: string, filename: string): Promise<void> {
++  const response = await fetch(url, { mode: 'no-cors' });
++  if (!response.ok && response.type !== 'opaque') {
++    throw new Error(`Download failed: HTTP ${response.status}`);
++  }
++
++  const blob = await response.blob();
++  const blobUrl = URL.createObjectURL(blob);
++
++  try {
++    const a = document.createElement('a');
++    a.href = blobUrl;
++    a.download = sanitizeFilename(filename);
++    a.style.display = 'none';
++    document.body.appendChild(a);
++    a.click();
++    document.body.removeChild(a);
++  } finally {
++    URL.revokeObjectURL(blobUrl);
++  }
++}
