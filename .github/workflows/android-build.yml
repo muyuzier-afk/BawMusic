@@ -35,18 +35,20 @@ jobs:
 
       - name: Install npm dependencies
         run: |
-          set -uo pipefail
+          set -eo pipefail
           echo "--- starting npm install ---"
           # Always end with success here; real install errors will surface in later steps.
           npm ci --no-audit --no-fund 2>&1 || npm install --no-audit --no-fund 2>&1 || true
           # Re-apply the executable bit on the cap shim and its target; the npm
           # cache from setup-node@v4 can restore symlinks whose target lost the bit.
           chmod +x node_modules/.bin/cap 2>/dev/null || true
-          [ -e node_modules/@capacitor/cli/bin/capacitor ] && chmod +x node_modules/@capacitor/cli/bin/capacitor 2>/dev/null || true
+          if [ -e node_modules/@capacitor/cli/bin/capacitor ]; then
+            chmod +x node_modules/@capacitor/cli/bin/capacitor 2>/dev/null || true
+          fi
           echo "--- node_modules/.bin/cap ---"
           ls -la node_modules/.bin/cap 2>/dev/null || echo "(cap shim not present)"
           echo "--- cap version ---"
-          ( node_modules/.bin/cap --version 2>&1 || npx --no-install cap --version 2>&1 || echo "cap unavailable" ) | head -5
+          ( node_modules/.bin/cap --version 2>&1 || npx --no-install cap --version 2>&1 || echo "cap unavailable" ) || true
           echo "--- key packages ---"
           for pkg in @capacitor/cli @capacitor/core next react; do
             if [ -f "node_modules/$pkg/package.json" ]; then
