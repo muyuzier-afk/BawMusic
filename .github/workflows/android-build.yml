@@ -91,15 +91,18 @@ jobs:
       - name: Sync Capacitor (full)
         id: cap_sync
         run: |
-          set -euo pipefail
-          node_modules/.bin/cap sync android --verbose
+          set -uo pipefail
+          # NOTE: Capacitor 8.x `cap sync` only supports --deployment / --inline,
+          # not --verbose. Passing unknown options causes an immediate exit,
+          # which looks like a "1-second failure" in the CI log.
+          node_modules/.bin/cap sync android
 
       - name: "Fallback: cap copy android"
         if: failure() && steps.cap_sync.conclusion == 'failure'
         run: |
-          set -euo pipefail
+          set -uo pipefail
           echo "::warning::cap sync failed; falling back to cap copy (web assets only)"
-          node_modules/.bin/cap copy android --verbose
+          node_modules/.bin/cap copy android
 
       - name: Build debug APK
         working-directory: android
