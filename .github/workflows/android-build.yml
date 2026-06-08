@@ -94,8 +94,7 @@ jobs:
           set -uo pipefail
           mkdir -p .cap-logs
 
-          # The CI cache can drop the executable bit from the cap shim or its
-          # target. Re-apply it here, then verify by listing + running --version.
+          # Re-apply executable bit on cap shim + target (cache restore can strip it).
           chmod +x node_modules/.bin/cap 2>/dev/null || true
           if [ -e node_modules/@capacitor/cli/bin/capacitor ]; then
             chmod +x node_modules/@capacitor/cli/bin/capacitor 2>/dev/null || true
@@ -114,8 +113,7 @@ jobs:
             cat .cap-logs/version.log
           fi
 
-          # Run via node directly to bypass shim permissions, capturing every
-          # byte of output to a file (incl. the exit code) so we never lose it.
+          # Run via node directly to bypass shim permissions.
           echo "--- cap sync BEGIN ---" > .cap-logs/sync.log
           set +e
           node --unhandled-rejections=strict node_modules/@capacitor/cli/bin/capacitor sync android >> .cap-logs/sync.log 2>&1
