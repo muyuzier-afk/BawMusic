@@ -95,14 +95,38 @@ jobs:
           # NOTE: Capacitor 8.x `cap sync` only supports --deployment / --inline,
           # not --verbose. Passing unknown options causes an immediate exit,
           # which looks like a "1-second failure" in the CI log.
-          node_modules/.bin/cap sync android
+          mkdir -p .cap-logs
+          node_modules/.bin/cap sync android > .cap-logs/sync.log 2>&1 || {
+            ec=$?
+            echo "::error::cap sync failed with exit code $ec"
+            echo "--- cap sync log (last 200 lines) ---"
+            tail -n 200 .cap-logs/sync.log || true
+            echo "--- environment ---"
+            node --version
+            npm --version
+            ls -la node_modules/@capacitor/cli/bin/ 2>/dev/null || echo "(no @capacitor/cli/bin)"
+            ls -la out 2>/dev/null | head -20 || echo "(no out/)"
+            cat capacitor.config.ts 2>/dev/null || echo "(no capacitor.config.ts)"
+            exit $ec
+          }
+          echo "--- cap sync log ---"
+          cat .cap-logs/sync.log
 
       - name: "Fallback: cap copy android"
         if: failure() && steps.cap_sync.conclusion == 'failure'
         run: |
           set -uo pipefail
           echo "::warning::cap sync failed; falling back to cap copy (web assets only)"
-          node_modules/.bin/cap copy android
+          mkdir -p .cap-logs
+          node_modules/.bin/cap copy android > .cap-logs/copy.log 2>&1 || {
+            ec=$?
+            echo "::error::cap copy failed with exit code $ec"
+            echo "--- cap copy log (last 200 lines) ---"
+            tail -n 200 .cap-logs/copy.log || true
+            exit $ec
+          }
+          echo "--- cap copy log ---"
+          cat .cap-logs/copy.log
 
       - name: Build debug APK
         working-directory: android
@@ -138,6 +162,7 @@ jobs:
         with:
           name: bawmusic-build-logs
           path: |
+            .cap-logs
             android/app/build/outputs/logs
             android/app/build/reports
           if-no-files-found: ignore
