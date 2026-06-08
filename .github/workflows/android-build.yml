@@ -34,7 +34,16 @@ jobs:
           cache: 'npm'
 
       - name: Install npm dependencies
-        run: npm ci || npm install
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund 2>/dev/null || npm install --no-audit --no-fund
+          # Re-apply the executable bit; the cache restore from setup-node@v4
+          # can preserve symlinks whose target lost the bit.
+          chmod +x node_modules/.bin/cap 2>/dev/null || true
+          echo "--- node_modules/.bin/cap ---"
+          ls -la node_modules/.bin/cap
+          echo "--- cap version ---"
+          node_modules/.bin/cap --version
 
       - name: Build Next.js (static export → out/)
         run: |
@@ -43,14 +52,6 @@ jobs:
           echo "--- out/ top level ---"
           ls -la out/ | head -20
           test -f out/index.html || { echo "::error::out/index.html missing after build"; exit 1; }
-          echo "--- package.json engine check ---"
-          node -e "console.log(require('./package.json').engines)"
-
-      - name: Verify Capacitor CLI
-        run: |
-          set -euo pipefail
-          test -x node_modules/.bin/cap || { echo "::error::cap binary not found"; ls node_modules/.bin/ | head; exit 1; }
-          node_modules/.bin/cap --version
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
