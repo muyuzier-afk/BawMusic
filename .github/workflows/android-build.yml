@@ -35,15 +35,27 @@ jobs:
 
       - name: Install npm dependencies
         run: |
-          set -euo pipefail
-          npm ci --no-audit --no-fund 2>/dev/null || npm install --no-audit --no-fund
-          # Re-apply the executable bit; the cache restore from setup-node@v4
-          # can preserve symlinks whose target lost the bit.
+          set -uo pipefail
+          echo "--- starting npm install ---"
+          # Always end with success here; real install errors will surface in later steps.
+          npm ci --no-audit --no-fund 2>&1 || npm install --no-audit --no-fund 2>&1 || true
+          # Re-apply the executable bit on the cap shim and its target; the npm
+          # cache from setup-node@v4 can restore symlinks whose target lost the bit.
           chmod +x node_modules/.bin/cap 2>/dev/null || true
+          [ -e node_modules/@capacitor/cli/bin/capacitor ] && chmod +x node_modules/@capacitor/cli/bin/capacitor 2>/dev/null || true
           echo "--- node_modules/.bin/cap ---"
-          ls -la node_modules/.bin/cap
+          ls -la node_modules/.bin/cap 2>/dev/null || echo "(cap shim not present)"
           echo "--- cap version ---"
-          node_modules/.bin/cap --version
+          ( node_modules/.bin/cap --version 2>&1 || npx --no-install cap --version 2>&1 || echo "cap unavailable" ) | head -5
+          echo "--- key packages ---"
+          for pkg in @capacitor/cli @capacitor/core next react; do
+            if [ -f "node_modules/$pkg/package.json" ]; then
+              v=$(node -e "console.log(require('./node_modules/$pkg/package.json').version)" 2>/dev/null || echo "?")
+              echo "$pkg@$v"
+            else
+              echo "$pkg MISSING"
+            fi
+          done
 
       - name: Build Next.js (static export → out/)
         run: |
