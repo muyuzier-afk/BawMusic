@@ -92,11 +92,27 @@ jobs:
         id: cap_sync
         run: |
           set -uo pipefail
-          # NOTE: Capacitor 8.x `cap sync` only supports --deployment / --inline,
-          # not --verbose. Passing unknown options causes an immediate exit,
-          # which looks like a "1-second failure" in the CI log.
           mkdir -p .cap-logs
-          node_modules/.bin/cap sync android > .cap-logs/sync.log 2>&1 || {
+
+          # The CI cache can drop the executable bit from the cap shim or its
+          # target. Re-apply it here, then verify by listing + running --version.
+          chmod +x node_modules/.bin/cap 2>/dev/null || true
+          if [ -e node_modules/@capacitor/cli/bin/capacitor ]; then
+            chmod +x node_modules/@capacitor/cli/bin/capacitor 2>/dev/null || true
+          fi
+          echo "--- shim ---"
+          ls -la node_modules/.bin/cap 2>&1 || true
+          echo "--- target ---"
+          ls -la node_modules/@capacitor/cli/bin/capacitor 2>&1 || true
+          echo "--- which cap ---"
+          command -v cap || echo "(no cap on PATH)"
+          echo "--- cap --version ---"
+          node_modules/.bin/cap --version > .cap-logs/version.log 2>&1 || cat .cap-logs/version.log
+
+          # Now do the actual sync. Use node directly to bypass any shim
+          # permission weirdness, with the same CLI entry the shim would use.
+          echo "--- cap sync (via node) ---"
+          node node_modules/@capacitor/cli/bin/capacitor sync android > .cap-logs/sync.log 2>&1 || {
             ec=$?
             echo "::error::cap sync failed with exit code $ec"
             echo "--- cap sync log (last 200 lines) ---"
@@ -104,7 +120,6 @@ jobs:
             echo "--- environment ---"
             node --version
             npm --version
-            ls -la node_modules/@capacitor/cli/bin/ 2>/dev/null || echo "(no @capacitor/cli/bin)"
             ls -la out 2>/dev/null | head -20 || echo "(no out/)"
             cat capacitor.config.ts 2>/dev/null || echo "(no capacitor.config.ts)"
             exit $ec
