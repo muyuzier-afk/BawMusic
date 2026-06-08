@@ -109,23 +109,28 @@ jobs:
           echo "--- cap --version ---"
           node_modules/.bin/cap --version > .cap-logs/version.log 2>&1 || cat .cap-logs/version.log
 
-          # Now do the actual sync. Use node directly to bypass any shim
-          # permission weirdness, with the same CLI entry the shim would use.
-          echo "--- cap sync (via node) ---"
-          node node_modules/@capacitor/cli/bin/capacitor sync android > .cap-logs/sync.log 2>&1 || {
-            ec=$?
+          # Run via node directly to bypass shim permissions. We also force
+          # unbuffered output and tee to a file so the log is visible inline
+          # AND in the uploaded artifact.
+          echo "--- cap sync (via node) BEGIN ---"
+          set +e
+          node --unhandled-rejections=strict node_modules/@capacitor/cli/bin/capacitor sync android 2>&1 | tee .cap-logs/sync.log
+          ec=${PIPESTATUS[0]}
+          set -e
+          echo "--- cap sync (via node) END, exit=$ec ---"
+          if [ "$ec" -ne 0 ]; then
             echo "::error::cap sync failed with exit code $ec"
-            echo "--- cap sync log (last 200 lines) ---"
-            tail -n 200 .cap-logs/sync.log || true
             echo "--- environment ---"
             node --version
             npm --version
             ls -la out 2>/dev/null | head -20 || echo "(no out/)"
             cat capacitor.config.ts 2>/dev/null || echo "(no capacitor.config.ts)"
+            echo "--- capacitor.config.json (if any) ---"
+            cat capacitor.config.json 2>/dev/null || echo "(no capacitor.config.json)"
+            echo "--- android dir ---"
+            ls -la android 2>/dev/null | head -20 || echo "(no android dir)"
             exit $ec
-          }
-          echo "--- cap sync log ---"
-          cat .cap-logs/sync.log
+          fi
 
       - name: "Fallback: cap copy android"
         if: failure() && steps.cap_sync.conclusion == 'failure'
