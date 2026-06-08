@@ -3,50 +3,166 @@ import { normalizeMediaUrl } from '@/lib/media';
 
 const BASE_URL = 'https://api.chksz.top/api';
 
-export async function searchSongs(keyword: string, limit = 30, offset = 0): Promise<Song[]> {
-  const response = await fetch(`${BASE_URL}/163_search?keyword=${encodeURIComponent(keyword)}&limit=${limit}&offset=${offset}`);
-  const data = await response.json();
-  if (data.code === 200) {
-    const songs = data.data?.songs || data.data || [];
-    return songs.map((s: any) => ({
-      id: s.id,
-      name: s.name,
-      artists: s.artists,
-      album: s.album,
-      picUrl: normalizeMediaUrl(s.picUrl)
-    }));
+interface RawApiResponse<T> {
+  code: number;
+  msg?: string;
+  data?: T;
+}
+
+interface RawSong {
+  id: number;
+  name: string;
+  artists?: string | { name: string }[];
+  artist?: string;
+  album?: string;
+  picUrl?: string;
+}
+
+interface RawMusicInfo {
+  id: number;
+  name: string;
+  artists?: string | { name: string }[];
+  artist?: string;
+  album?: string;
+  picUrl?: string;
+  url?: string;
+  br?: number;
+  level?: string;
+  size?: number;
+  md5?: string;
+}
+
+interface RawLyric {
+  lrc?: { lyric?: string } | string;
+  tlyric?: { lyric?: string } | string;
+  romalrc?: { lyric?: string } | string;
+  klyric?: { lyric?: string } | string;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function unwrapLrc(value: RawLyric['lrc']): string {
+  if (typeof value === 'string') return value;
+  if (isObject(value) && typeof value.lyric === 'string') return value.lyric;
+  return '';
+}
+
+function joinArtists(value: RawSong['artists'] | RawMusicInfo['artists']): string {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => (isObject(entry) && typeof entry.name === 'string' ? entry.name : ''))
+      .filter(Boolean)
+      .join(' / ');
   }
-  throw new Error(data.msg || 'Search failed');
+  return '';
+}
+
+function parseApiData<T>(payload: unknown): T {
+  if (!isObject(payload)) {
+    throw new Error('Invalid API response');
+  }
+  const envelope = payload as unknown as RawApiResponse<T>;
+  if (typeof envelope.code !== 'number' || envelope.code !== 200) {
+    throw new Error(envelope.msg || 'API request failed');
+  }
+  return envelope.data as T;
+}
+
+export async function searchSongs(keyword: string, limit = 30, offset = 0): Promise<Song[]> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `${BASE_URL}/163_search?keyword=${encodeURIComponent(keyword)}&limit=${limit}&offset=${offset}`
+    );
+  } catch (err) {
+    throw new Error(err instanceof Error ? `Network error: ${err.message}` : 'Network error');
+  }
+
+  if (!response.ok) {
+    throw new Error(`Search failed: HTTP ${response.status}`);
+  }
+
+  const payload: unknown = await response.json();
+  const data = parseApiData<{ songs?: RawSong[] } | RawSong[]>(payload);
+  const songs: RawSong[] = Array.isArray(data)
+    ? data
+    : Array.isArray((data as { songs?: RawSong[] })?.songs)
+    ? (data as { songs: RawSong[] }).songs
+    : [];
+
+  return songs
+    .filter((s): s is RawSong => isObject(s) && typeof s.id === 'number' && typeof s.name === 'string')
+    .map((s) => {
+      const artists = joinArtists(s.artists) || s.artist || '';
+      return {
+        id: s.id,
+        name: s.name,
+        artists,
+        album: typeof s.album === 'string' ? s.album : '',
+        picUrl: normalizeMediaUrl(s.picUrl)
+      };
+    });
 }
 
 export async function getMusicInfo(id: number, level: AudioQuality = 'lossless'): Promise<MusicInfo> {
-  const response = await fetch(`${BASE_URL}/163_music?id=${id}&level=${level}&type=json`);
-  const data = await response.json();
-  if (data.code === 200) {
-    const d = data.data;
-    return {
-      id: d.id,
-      name: d.name,
-      artists: d.artist || d.artists || '',
-      album: d.album,
-      picUrl: normalizeMediaUrl(d.picUrl),
-      url: normalizeMediaUrl(d.url),
-      br: d.br,
-      level: d.level,
-      size: d.size,
-      md5: d.md5
-    };
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/163_music?id=${id}&level=${level}&type=json`);
+  } catch (err) {
+    throw new Error(err instanceof Error ? `Network error: ${err.message}` : 'Network error');
   }
-  throw new Error(data.msg || 'Failed to get music info');
+
+  if (!response.ok) {
+    throw new Error(`Failed to get music info: HTTP ${response.status}`);
+  }
+
+  const payload: unknown = await response.json();
+  const raw = parseApiData<RawMusicInfo>(payload);
+
+  if (!isObject(raw) || typeof raw.id !== 'number' || typeof raw.name !== 'string' || typeof raw.url !== 'string') {
+    throw new Error('Invalid music info payload');
+  }
+
+  const artists = joinArtists(raw.artists) || raw.artist || '';
+
+  return {
+    id: raw.id,
+    name: raw.name,
+    artists,
+    album: typeof raw.album === 'string' ? raw.album : '',
+    picUrl: normalizeMediaUrl(raw.picUrl),
+    url: normalizeMediaUrl(raw.url),
+    br: typeof raw.br === 'number' ? raw.br : 0,
+    level: typeof raw.level === 'string' ? raw.level : level,
+    size: typeof raw.size === 'number' ? raw.size : 0,
+    md5: typeof raw.md5 === 'string' ? raw.md5 : ''
+  };
 }
 
 export async function getLyric(id: number): Promise<LyricData> {
-  const response = await fetch(`${BASE_URL}/163_lyric?id=${id}`);
-  const data = await response.json();
-  if (data.code === 200) {
-    return data.data || { lrc: '', tlyric: '', romalrc: '', klyric: '' };
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/163_lyric?id=${id}`);
+  } catch (err) {
+    throw new Error(err instanceof Error ? `Network error: ${err.message}` : 'Network error');
   }
-  throw new Error(data.msg || 'Failed to get lyric');
+
+  if (!response.ok) {
+    throw new Error(`Failed to get lyric: HTTP ${response.status}`);
+  }
+
+  const payload: unknown = await response.json();
+  const raw = parseApiData<RawLyric>(payload);
+
+  return {
+    lrc: unwrapLrc(raw?.lrc),
+    tlyric: unwrapLrc(raw?.tlyric),
+    romalrc: unwrapLrc(raw?.romalrc),
+    klyric: unwrapLrc(raw?.klyric)
+  };
 }
 
 function parseTimedLyric(lrc: string): { time: number; text: string }[] {
@@ -81,6 +197,8 @@ function parseTimedLyric(lrc: string): { time: number; text: string }[] {
 }
 
 export function parseLyric(lrc: string, tlyric = ''): { time: number; text: string; translation?: string }[] {
+  if (typeof lrc !== 'string' || lrc.length === 0) return [];
+
   const lyricLines = parseTimedLyric(lrc);
   if (lyricLines.length === 0) return [];
 

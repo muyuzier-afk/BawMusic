@@ -251,12 +251,21 @@ export function usePlayer(): UsePlayerReturn {
 
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
+    const handleError = () => {
+      if (!audio.error) return;
+      const code = audio.error.code;
+      const message = `音频播放失败（code ${code}）`;
+      setError(message);
+      setNotice(message);
+      setIsPlaying(false);
+    };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
@@ -264,6 +273,7 @@ export function usePlayer(): UsePlayerReturn {
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('error', handleError);
       audio.pause();
       audio.src = '';
       audioRef.current = null;
@@ -287,29 +297,40 @@ export function usePlayer(): UsePlayerReturn {
     const requestId = ++loadRequestRef.current;
     setIsLoading(true);
     setError(null);
+    setNotice(null);
     setLyric([]);
-    
+
     try {
       const musicInfo = options?.resolvedMusicInfo ?? await getMusicInfo(song.id, audioQualityRef.current);
 
       if (requestId !== loadRequestRef.current) return;
-      
+
       setCurrentSong(musicInfo);
-      
+
       if (audioRef.current) {
+        const audio = audioRef.current;
         const resumeTime = options?.startTime;
         if (typeof resumeTime === 'number' && resumeTime > 0) {
           const setResumeTime = () => {
             if (!audioRef.current) return;
             audioRef.current.currentTime = Math.max(0, resumeTime);
           };
-          audioRef.current.addEventListener('loadedmetadata', setResumeTime, { once: true });
+          audio.addEventListener('loadedmetadata', setResumeTime, { once: true });
         }
 
-        audioRef.current.src = musicInfo.url;
+        audio.src = musicInfo.url;
 
         if (options?.autoPlay !== false) {
-          void audioRef.current.play();
+          try {
+            await audio.play();
+          } catch (playErr) {
+            // Autoplay may be blocked or interrupted by a newer load; surface a notice only if this is the active request.
+            if (requestId === loadRequestRef.current && playErr instanceof Error && playErr.name !== 'AbortError') {
+              const message = playErr.message || '播放失败，请稍后重试';
+              setError(message);
+              setNotice(message);
+            }
+          }
         }
       }
 
@@ -323,7 +344,9 @@ export function usePlayer(): UsePlayerReturn {
       }
     } catch (err) {
       if (requestId !== loadRequestRef.current) return;
-      setError(err instanceof Error ? err.message : 'Failed to load song');
+      const message = err instanceof Error ? err.message : 'Failed to load song';
+      setError(message);
+      setNotice(message);
     } finally {
       if (requestId !== loadRequestRef.current) return;
       setIsLoading(false);

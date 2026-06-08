@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+apk-output
+android/app/build
+android/.gradle
+android/build
+android/local.properties
+*.tsbuildinfo
+package-lock.json

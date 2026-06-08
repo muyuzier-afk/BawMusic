@@ -2,10 +2,18 @@
   "name": "music-player",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0 <21",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "cap:sync": "npm run build && npx cap sync",
     "cap:add:android": "npm run build && npx cap add android",
     "cap:open:android": "npx cap open android"
@@ -25,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "prettier": "^3.3.3",
     "typescript": "^5"
   }
 }

@@ -33,17 +33,3 @@ export interface LyricLine {
   text: string;
   translation?: string;
 }
-
-export interface PlayerState {
-  currentSong: MusicInfo | null;
-  isPlaying: boolean;
-  currentTime: number;
-  duration: number;
-  volume: number;
-  isShuffle: boolean;
-  isRepeat: boolean;
-  playlist: Song[];
-  currentIndex: number;
-  lyric: LyricLine[];
-  isLoading: boolean;
-}
