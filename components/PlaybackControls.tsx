@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { Song, AudioQuality } from '@/types/music';
 import { normalizeMediaUrl } from '@/lib/media';
+import { PLACEHOLDER_COVER } from '@/lib/cover';
 import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon, DownloadIcon, TrashIcon, CheckIcon } from './Icons';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
@@ -28,7 +29,7 @@ interface PlaybackControlsProps {
   onPrev: () => void;
   onShare?: () => void;
   showShare?: boolean;
-  onDownload?: () => void;
+  onDownload?: (event: MouseEvent<HTMLButtonElement>) => void;
   showDownload?: boolean;
   onCyclePlayMode: () => void;
   onAudioQualityChange: (quality: AudioQuality) => void;
@@ -96,7 +97,12 @@ export function PlaybackControls({
         )}
 
         {showDownload && onDownload && (
-          <button className="control-btn control-btn-download" onClick={onDownload} aria-label="下载当前歌曲">
+          <button
+            className="control-btn control-btn-download"
+            onClick={onDownload}
+            aria-label="下载当前歌曲"
+            data-download-anchor="true"
+          >
             <DownloadIcon size={20} />
           </button>
         )}
@@ -403,9 +409,15 @@ export function PlaylistDrawer({
                   </button>
                 )}
                 <img
-                  src={normalizeMediaUrl(song.picUrl)}
+                  src={normalizeMediaUrl(song.picUrl) || PLACEHOLDER_COVER}
                   alt={song.name}
                   className="playlist-item-cover"
+                  onError={(event) => {
+                    const target = event.currentTarget;
+                    if (target.src !== PLACEHOLDER_COVER) {
+                      target.src = PLACEHOLDER_COVER;
+                    }
+                  }}
                 />
                 <div className="playlist-item-info">
                   <div className={`playlist-item-title ${index === currentIndex ? 'playlist-item-playing' : ''}`}>

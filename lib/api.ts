@@ -32,11 +32,16 @@ interface RawMusicInfo {
   md5?: string;
 }
 
+interface RawLyricField {
+  lyric?: string;
+  content?: string;
+}
+
 interface RawLyric {
-  lrc?: { lyric?: string } | string;
-  tlyric?: { lyric?: string } | string;
-  romalrc?: { lyric?: string } | string;
-  klyric?: { lyric?: string } | string;
+  lrc?: RawLyricField | string;
+  tlyric?: RawLyricField | string;
+  romalrc?: RawLyricField | string;
+  klyric?: RawLyricField | string;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -45,7 +50,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function unwrapLrc(value: RawLyric['lrc']): string {
   if (typeof value === 'string') return value;
-  if (isObject(value) && typeof value.lyric === 'string') return value.lyric;
+  if (isObject(value)) {
+    if (typeof value.lyric === 'string') return value.lyric;
+    if (typeof value.content === 'string') return value.content;
+  }
   return '';
 }
 
@@ -166,11 +174,11 @@ export async function getLyric(id: number): Promise<LyricData> {
 }
 
 function parseTimedLyric(lrc: string): { time: number; text: string }[] {
-  const lines = lrc.split('\n');
+  const lines = lrc.split(/\r?\n/);
   const result: { time: number; text: string }[] = [];
 
-  // Some sources use [00:08.83], others use [00:08:83].
-  const timeRegex = /\[(\d{2}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
+  // Accept [mm:ss.xx], [mm:ss:xx], [m:ss.xxx] etc. Minutes/seconds may be 1 or 2 digits.
+  const timeRegex = /\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
   const metaTagRegex = /^\[[a-zA-Z]+:[^\]]*\]$/;
 
   for (const line of lines) {

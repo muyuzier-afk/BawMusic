@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Song } from '@/types/music';
 import { searchSongs } from '@/lib/api';
 import { normalizeMediaUrl } from '@/lib/media';
+import { PLACEHOLDER_COVER } from '@/lib/cover';
 import { SearchIcon, CloseIcon } from './Icons';
 
 interface SearchBarProps {
@@ -210,7 +211,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
                 }}
               >
                 <img
-                  src={normalizeMediaUrl(song.picUrl)}
+                  src={normalizeMediaUrl(song.picUrl) || PLACEHOLDER_COVER}
                   alt={song.name}
                   style={{
                     width: '44px',
@@ -219,6 +220,12 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
                     objectFit: 'cover',
                     flexShrink: 0,
                     background: 'var(--color-surface)'
+                  }}
+                  onError={(event) => {
+                    const target = event.currentTarget;
+                    if (target.src !== PLACEHOLDER_COVER) {
+                      target.src = PLACEHOLDER_COVER;
+                    }
                   }}
                 />
                 <div style={{ flex: 1, overflow: 'hidden' }}>

@@ -7,11 +7,13 @@ import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
 import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls';
+import { DownloadMenu } from '@/components/DownloadMenu';
 import { Sidebar } from '@/components/Sidebar';
-import { Song } from '@/types/music';
+import { Song, AudioQuality } from '@/types/music';
 import { ListIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
-import { downloadSong, sanitizeFilename } from '@/lib/download';
+import { downloadSongAtQuality } from '@/lib/download';
+import { PLACEHOLDER_COVER } from '@/lib/cover';
 
 export default function MusicPlayer() {
   const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
@@ -52,6 +54,9 @@ export default function MusicPlayer() {
   const [mobileLyricsOpen, setMobileLyricsOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isNativeApp, setIsNativeApp] = useState(false);
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [downloadMenuAnchor, setDownloadMenuAnchor] = useState<DOMRect | null>(null);
+  const [downloadBusy, setDownloadBusy] = useState(false);
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
   
@@ -82,17 +87,44 @@ export default function MusicPlayer() {
     playSong(song);
   }, [playSong]);
 
-  const handleDownloadSong = useCallback(async () => {
+  const handleDownloadClick = useCallback((event: MouseEvent<HTMLElement>) => {
     if (!currentSong) return;
+    const target = event.currentTarget as HTMLElement;
+    setDownloadMenuAnchor(target.getBoundingClientRect());
+    setDownloadMenuOpen((prev) => !prev);
+  }, [currentSong]);
+
+  const handleCloseDownloadMenu = useCallback(() => {
+    if (downloadBusy) return;
+    setDownloadMenuOpen(false);
+  }, [downloadBusy]);
+
+  const handleDownloadAtQuality = useCallback(async (quality: AudioQuality) => {
+    if (!currentSong || downloadBusy) return;
+    setDownloadBusy(true);
     try {
-      const ext = currentSong.level === 'lossless' || currentSong.level === 'hires' || currentSong.level === 'jymaster' || currentSong.level === 'sky' ? 'flac' : 'mp3';
-      const filename = `${sanitizeFilename(currentSong.artists)} - ${sanitizeFilename(currentSong.name)}.${ext}`;
-      await downloadSong(currentSong.url, filename);
-      showNotice('已开始下载');
-    } catch {
-      showNotice('下载失败，请稍后重试');
+      await downloadSongAtQuality({
+        songId: currentSong.id,
+        quality,
+        artists: currentSong.artists,
+        name: currentSong.name
+      });
+      showNotice(`已开始下载（${quality}）`);
+      setDownloadMenuOpen(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '下载失败，请稍后重试';
+      showNotice(message);
+    } finally {
+      setDownloadBusy(false);
     }
-  }, [currentSong, showNotice]);
+  }, [currentSong, downloadBusy, showNotice]);
+
+  useEffect(() => {
+    if (!currentSong) {
+      setDownloadMenuOpen(false);
+      setDownloadBusy(false);
+    }
+  }, [currentSong]);
 
   const handleShareSong = useCallback(async () => {
     if (!currentSong || typeof window === 'undefined') return;
@@ -269,13 +301,19 @@ export default function MusicPlayer() {
               )}
               
               <img
-                src={normalizeMediaUrl(currentSong.picUrl)}
+                src={normalizeMediaUrl(currentSong.picUrl) || PLACEHOLDER_COVER}
                 alt={currentSong.name}
                 className="album-cover album-cover-clickable"
                 style={{ opacity: isLoading ? 0.3 : 1 }}
                 onClick={(event) => {
                   event.stopPropagation();
                   openMobileLyrics();
+                }}
+                onError={(event) => {
+                  const target = event.currentTarget;
+                  if (target.src !== PLACEHOLDER_COVER) {
+                    target.src = PLACEHOLDER_COVER;
+                  }
                 }}
               />
               
@@ -300,7 +338,7 @@ export default function MusicPlayer() {
                 onPrev={playPrev}
                 onShare={handleShareSong}
                 showShare={!isNativeApp && Boolean(currentSong)}
-                onDownload={handleDownloadSong}
+                onDownload={handleDownloadClick}
                 showDownload={Boolean(currentSong)}
                 onCyclePlayMode={cyclePlayMode}
                 onAudioQualityChange={setAudioQuality}
@@ -339,6 +377,15 @@ export default function MusicPlayer() {
         onRemoveItem={removePlaylistItem}
         onClearPlaylist={clearPlaylist}
         onRemoveItems={removePlaylistItems}
+      />
+
+      <DownloadMenu
+        isOpen={downloadMenuOpen}
+        anchorRect={downloadMenuAnchor}
+        defaultQuality={audioQuality}
+        busy={downloadBusy}
+        onSelect={handleDownloadAtQuality}
+        onClose={handleCloseDownloadMenu}
       />
 
       <button
