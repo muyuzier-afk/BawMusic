@@ -81,7 +81,7 @@ jobs:
           set -euo pipefail
           node_modules/.bin/cap sync android --verbose
 
-      - name: Fallback: cap copy android
+      - name: "Fallback: cap copy android"
         if: failure() && steps.cap_sync.conclusion == 'failure'
         run: |
           set -euo pipefail
