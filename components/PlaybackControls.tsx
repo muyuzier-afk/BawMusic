@@ -5,7 +5,7 @@ import type { MouseEvent, TouchEvent } from 'react';
 import { Song, AudioQuality } from '@/types/music';
 import { normalizeMediaUrl } from '@/lib/media';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
-import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon, DownloadIcon, TrashIcon, CheckIcon } from './Icons';
+import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon, DownloadIcon, TrashIcon, CheckIcon, ImportIcon } from './Icons';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
 
@@ -149,6 +149,7 @@ interface PlaylistDrawerProps {
   onRemoveItem: (index: number) => void;
   onClearPlaylist?: () => void;
   onRemoveItems?: (indices: number[]) => void;
+  onImport?: () => void;
 }
 
 export function PlaylistDrawer({
@@ -160,7 +161,8 @@ export function PlaylistDrawer({
   onMoveItem,
   onRemoveItem,
   onClearPlaylist,
-  onRemoveItems
+  onRemoveItems,
+  onImport
 }: PlaylistDrawerProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [swipingIndex, setSwipingIndex] = useState<number | null>(null);
@@ -360,6 +362,12 @@ export function PlaylistDrawer({
               </div>
             ) : (
               <div className="playlist-toolbar-actions">
+                {onImport && (
+                  <button className="playlist-toolbar-btn" onClick={onImport} type="button">
+                    <ImportIcon size={14} />
+                    导入歌单
+                  </button>
+                )}
                 {hasSelection && onRemoveItems && (
                   <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleBatchDelete} type="button">
                     <TrashIcon size={14} />

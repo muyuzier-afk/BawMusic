@@ -222,3 +222,100 @@ export function parseLyric(lrc: string, tlyric = ''): { time: number; text: stri
     };
   });
 }
+
+// ============================
+// Playlist import
+// ============================
+
+interface RawPlaylistTrack {
+  id?: number;
+  name?: string;
+  ar?: Array<{ name?: string }>;
+  al?: { name?: string; picUrl?: string };
+}
+
+interface RawPlaylistData {
+  id?: number;
+  name?: string;
+  coverImgUrl?: string;
+  trackCount?: number;
+  tracks?: RawPlaylistTrack[];
+}
+
+export interface PlaylistInfo {
+  id: number;
+  name: string;
+  coverImgUrl: string;
+  trackCount: number;
+  songs: Song[];
+}
+
+export async function fetchPlaylist(playlistId: string | number): Promise<PlaylistInfo> {
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/163_playlist?id=${encodeURIComponent(String(playlistId))}`);
+  } catch (err) {
+    throw new Error(err instanceof Error ? `Network error: ${err.message}` : 'Network error');
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch playlist: HTTP ${response.status}`);
+  }
+
+  const payload: unknown = await response.json();
+  const data = parseApiData<RawPlaylistData>(payload);
+
+  if (!isObject(data)) {
+    throw new Error('Invalid playlist payload');
+  }
+
+  const tracks: RawPlaylistTrack[] = Array.isArray(data.tracks) ? data.tracks : [];
+
+  const songs: Song[] = tracks
+    .filter(
+      (t): t is RawPlaylistTrack =>
+        isObject(t) && typeof t.id === 'number' && typeof t.name === 'string'
+    )
+    .map((t) => {
+      const artists = Array.isArray(t.ar)
+        ? t.ar
+            .map((a) => (isObject(a) && typeof a.name === 'string' ? a.name : ''))
+            .filter(Boolean)
+            .join(' / ')
+        : '';
+      const albumName = isObject(t.al) && typeof t.al.name === 'string' ? t.al.name : '';
+      const picUrl = isObject(t.al) && typeof t.al.picUrl === 'string' ? normalizeMediaUrl(t.al.picUrl) : '';
+      return {
+        id: t.id as number,
+        name: t.name as string,
+        artists,
+        album: albumName,
+        picUrl
+      };
+    });
+
+  return {
+    id: typeof data.id === 'number' ? data.id : 0,
+    name: typeof data.name === 'string' ? data.name : '未知歌单',
+    coverImgUrl: typeof data.coverImgUrl === 'string' ? normalizeMediaUrl(data.coverImgUrl) : '',
+    trackCount: typeof data.trackCount === 'number' ? data.trackCount : songs.length,
+    songs
+  };
+}
+
+export function extractPlaylistId(input: string): string | null {
+  const trimmed = input.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return trimmed;
+  }
+  try {
+    const url = new URL(trimmed);
+    const id = url.searchParams.get('id');
+    if (id && /^\d+$/.test(id)) {
+      return id;
+    }
+  } catch {
+    // ignore invalid URL
+  }
+  return null;
+}
