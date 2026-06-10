@@ -345,7 +345,15 @@ export function PlaylistDrawer({
         <div className="playlist-handle" onClick={onClose} />
         <div className="playlist-header">
           <span className="playlist-title">播放列表</span>
-          <span className="playlist-count">{playlist.length} 首歌曲</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {!isDesktop && onImport && (
+              <button className="playlist-toolbar-btn" onClick={onImport} type="button">
+                <ImportIcon size={14} />
+                导入歌单
+              </button>
+            )}
+            <span className="playlist-count">{playlist.length} 首歌曲</span>
+          </div>
         </div>
 
         {isDesktop && (
