@@ -263,6 +263,16 @@ export async function fetchPlaylist(playlistId: string | number): Promise<Playli
   }
 
   const payload: unknown = await response.json();
+
+  // Debug: log raw payload shape when tracks are missing or empty
+  if (isObject(payload) && isObject((payload as Record<string, unknown>).data)) {
+    const d = (payload as Record<string, unknown>).data as Record<string, unknown>;
+    if (!Array.isArray(d.tracks) || d.tracks.length === 0) {
+      // eslint-disable-next-line no-console
+      console.warn('[fetchPlaylist] API returned no tracks. Raw data keys:', Object.keys(d));
+    }
+  }
+
   const data = parseApiData<RawPlaylistData>(payload);
 
   if (!isObject(data)) {
@@ -270,6 +280,10 @@ export async function fetchPlaylist(playlistId: string | number): Promise<Playli
   }
 
   const tracks: RawPlaylistTrack[] = Array.isArray(data.tracks) ? data.tracks : [];
+
+  if (tracks.length === 0) {
+    throw new Error('该歌单暂无歌曲或接口未返回曲目数据');
+  }
 
   const songs: Song[] = tracks
     .filter(
@@ -293,6 +307,10 @@ export async function fetchPlaylist(playlistId: string | number): Promise<Playli
         picUrl
       };
     });
+
+  if (songs.length === 0) {
+    throw new Error('歌单中的曲目数据格式异常，无法解析');
+  }
 
   return {
     id: typeof data.id === 'number' ? data.id : 0,

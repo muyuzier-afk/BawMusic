@@ -134,10 +134,6 @@ export default function MusicPlayer() {
     setImportBusy(true);
     try {
       const info = await fetchPlaylist(playlistId);
-      if (info.songs.length === 0) {
-        showNotice('该歌单暂无歌曲');
-        return;
-      }
       clearPlaylist();
       for (const song of info.songs) {
         addToPlaylist(song);
@@ -148,6 +144,8 @@ export default function MusicPlayer() {
       setPlaylistOpen(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : '导入失败，请稍后重试';
+      // eslint-disable-next-line no-console
+      console.error('[ImportPlaylist] Error:', err);
       showNotice(message);
     } finally {
       setImportBusy(false);
