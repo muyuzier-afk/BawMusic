@@ -1558,3 +1558,100 @@ body.immersive-shell {
     justify-content: center;
   }
 }
+
+/* Fatal error fullscreen overlay */
+.fatal-error-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: fatalErrorFadeIn 0.2s ease-out;
+}
+
+@keyframes fatalErrorFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fatal-error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+  padding: 40px 32px;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 80, 80, 0.1) inset;
+}
+
+.fatal-error-icon {
+  font-size: 56px;
+  line-height: 1;
+  color: #ff5050;
+  margin-bottom: 20px;
+  animation: fatalErrorPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes fatalErrorPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+.fatal-error-title {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.fatal-error-message {
+  margin: 0 0 28px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.75);
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.fatal-error-retry {
+  appearance: none;
+  border: 1px solid rgba(255, 80, 80, 0.4);
+  background: rgba(255, 80, 80, 0.15);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 10px 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fatal-error-retry:hover {
+  background: rgba(255, 80, 80, 0.3);
+  border-color: rgba(255, 80, 80, 0.6);
+}
+
+.fatal-error-retry:active {
+  transform: scale(0.97);
+}

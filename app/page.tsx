@@ -62,6 +62,7 @@ export default function MusicPlayer() {
   const [importOpen, setImportOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importBusy, setImportBusy] = useState(false);
+  const [fatalError, setFatalError] = useState<string | null>(null);
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
   
@@ -146,7 +147,7 @@ export default function MusicPlayer() {
       const message = err instanceof Error ? err.message : '导入失败，请稍后重试';
       // eslint-disable-next-line no-console
       console.error('[ImportPlaylist] Error:', err);
-      showNotice(message);
+      setFatalError(message);
     } finally {
       setImportBusy(false);
     }
@@ -281,6 +282,25 @@ export default function MusicPlayer() {
   
   return (
     <div className="app-container">
+      {fatalError && (
+        <div className="fatal-error-overlay" role="alert">
+          <div className="fatal-error-card">
+            <div className="fatal-error-icon" aria-hidden="true">⚠</div>
+            <h1 className="fatal-error-title">出错了</h1>
+            <p className="fatal-error-message">{fatalError}</p>
+            <button
+              className="fatal-error-retry"
+              onClick={() => {
+                setFatalError(null);
+                setImportOpen(false);
+              }}
+              type="button"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
       <div
         className="bg-layer"
         style={{
