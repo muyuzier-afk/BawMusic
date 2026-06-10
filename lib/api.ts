@@ -73,10 +73,17 @@ function parseApiData<T>(payload: unknown): T {
     throw new Error('Invalid API response');
   }
   const envelope = payload as unknown as RawApiResponse<T>;
-  if (typeof envelope.code !== 'number' || envelope.code !== 200) {
-    throw new Error(envelope.msg || 'API request failed');
+  // Accept either { code: 200, data: ... } or bare { data: ... } shapes.
+  if (typeof envelope.code === 'number') {
+    if (envelope.code !== 200) {
+      throw new Error(envelope.msg || 'API request failed');
+    }
+    return envelope.data as T;
   }
-  return envelope.data as T;
+  if ('data' in envelope && envelope.data !== undefined) {
+    return envelope.data as T;
+  }
+  return payload as T;
 }
 
 export async function searchSongs(keyword: string, limit = 30, offset = 0): Promise<Song[]> {
