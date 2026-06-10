@@ -10,10 +10,11 @@ import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls'
 import { DownloadMenu } from '@/components/DownloadMenu';
 import { Sidebar } from '@/components/Sidebar';
 import { Song, AudioQuality } from '@/types/music';
-import { ListIcon } from '@/components/Icons';
+import { ListIcon, ImportIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
+import { fetchPlaylist, extractPlaylistId } from '@/lib/api';
 
 export default function MusicPlayer() {
   const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
@@ -45,6 +46,7 @@ export default function MusicPlayer() {
     removePlaylistItem,
     removePlaylistItems,
     clearPlaylist,
+    addToPlaylist,
     clearNotice,
     showNotice
   } = usePlayer();
@@ -57,6 +59,9 @@ export default function MusicPlayer() {
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState<DOMRect | null>(null);
   const [downloadBusy, setDownloadBusy] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importBusy, setImportBusy] = useState(false);
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
   
@@ -118,6 +123,36 @@ export default function MusicPlayer() {
       setDownloadBusy(false);
     }
   }, [currentSong, downloadBusy, showNotice]);
+
+  const handleImportPlaylist = useCallback(async () => {
+    if (importBusy) return;
+    const playlistId = extractPlaylistId(importUrl);
+    if (!playlistId) {
+      showNotice('请输入有效的歌单链接或 ID');
+      return;
+    }
+    setImportBusy(true);
+    try {
+      const info = await fetchPlaylist(playlistId);
+      if (info.songs.length === 0) {
+        showNotice('该歌单暂无歌曲');
+        return;
+      }
+      clearPlaylist();
+      for (const song of info.songs) {
+        addToPlaylist(song);
+      }
+      showNotice(`已导入「${info.name}」共 ${info.songs.length} 首歌曲`);
+      setImportOpen(false);
+      setImportUrl('');
+      setPlaylistOpen(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '导入失败，请稍后重试';
+      showNotice(message);
+    } finally {
+      setImportBusy(false);
+    }
+  }, [importUrl, importBusy, showNotice, clearPlaylist, addToPlaylist]);
 
   useEffect(() => {
     if (!currentSong) {
@@ -377,6 +412,7 @@ export default function MusicPlayer() {
         onRemoveItem={removePlaylistItem}
         onClearPlaylist={clearPlaylist}
         onRemoveItems={removePlaylistItems}
+        onImport={() => setImportOpen(true)}
       />
 
       <DownloadMenu
@@ -400,6 +436,49 @@ export default function MusicPlayer() {
           <circle cx="12" cy="16.5" r="1" fill="currentColor" stroke="none" />
         </svg>
       </button>
+
+      {importOpen && (
+        <div className="details-overlay" role="dialog" aria-modal="true" onClick={() => setImportOpen(false)}>
+          <section className="details-card glass-strong import-card" onClick={(event) => event.stopPropagation()}>
+            <button className="details-close" onClick={() => setImportOpen(false)} type="button">
+              关闭
+            </button>
+
+            <h2 className="details-title">导入网易云歌单</h2>
+            <p className="details-subtitle">输入歌单链接或 ID，将自动清空当前列表并导入</p>
+
+            <div className="import-field">
+              <input
+                className="import-input"
+                type="text"
+                placeholder="https://music.163.com/m/playlist?id=..."
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    void handleImportPlaylist();
+                  }
+                }}
+              />
+              <button
+                className="import-btn"
+                onClick={() => void handleImportPlaylist()}
+                disabled={importBusy}
+                type="button"
+              >
+                {importBusy ? (
+                  <span className="loading-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+                ) : (
+                  <>
+                    <ImportIcon size={16} />
+                    导入
+                  </>
+                )}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {detailsOpen && (
         <div className="details-overlay" role="dialog" aria-modal="true" onClick={() => setDetailsOpen(false)}>
