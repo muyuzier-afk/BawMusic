@@ -1680,3 +1680,50 @@ body.immersive-shell {
   border-color: rgba(80, 160, 255, 0.5);
   color: #cfe4ff;
 }
+
+/* Import dialog JSON section */
+.import-section-title {
+  margin: 16px 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.import-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.import-divider {
+  display: flex;
+  align-items: center;
+  margin: 18px 0 8px;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+.import-divider::before,
+.import-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.import-divider span {
+  padding: 0 12px;
+  letter-spacing: 0.2em;
+}
+
+.import-btn-wide {
+  width: 100%;
+  justify-content: center;
+  padding: 12px 16px;
+}
+
+.playlist-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

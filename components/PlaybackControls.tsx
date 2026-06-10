@@ -150,6 +150,7 @@ interface PlaylistDrawerProps {
   onClearPlaylist?: () => void;
   onRemoveItems?: (indices: number[]) => void;
   onImport?: () => void;
+  onExport?: () => void;
 }
 
 export function PlaylistDrawer({
@@ -162,7 +163,8 @@ export function PlaylistDrawer({
   onRemoveItem,
   onClearPlaylist,
   onRemoveItems,
-  onImport
+  onImport,
+  onExport
 }: PlaylistDrawerProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [swipingIndex, setSwipingIndex] = useState<number | null>(null);
@@ -379,6 +381,12 @@ export function PlaylistDrawer({
                     导入歌单
                   </button>
                 )}
+                {onExport && (
+                  <button className="playlist-toolbar-btn" onClick={onExport} type="button" disabled={playlist.length === 0}>
+                    <DownloadIcon size={14} />
+                    导出 JSON
+                  </button>
+                )}
                 {hasSelection && onRemoveItems && (
                   <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleBatchDelete} type="button">
                     <TrashIcon size={14} />
@@ -409,6 +417,12 @@ export function PlaylistDrawer({
               </div>
             ) : (
               <div className="playlist-toolbar-actions">
+                {onExport && (
+                  <button className="playlist-toolbar-btn" onClick={onExport} type="button" disabled={playlist.length === 0}>
+                    <DownloadIcon size={14} />
+                    导出 JSON
+                  </button>
+                )}
                 <button
                   className={`playlist-toolbar-btn ${selectionMode ? 'active' : ''}`}
                   onClick={() => {
