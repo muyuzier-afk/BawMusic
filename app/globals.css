@@ -1655,3 +1655,28 @@ body.immersive-shell {
 .fatal-error-retry:active {
   transform: scale(0.97);
 }
+
+/* Mobile playlist toolbar (multi-select delete) */
+.playlist-toolbar-mobile {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.playlist-toolbar-mobile .playlist-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.playlist-toolbar-btn.active {
+  background: rgba(80, 160, 255, 0.2);
+  border-color: rgba(80, 160, 255, 0.5);
+  color: #cfe4ff;
+}
