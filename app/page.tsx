@@ -647,78 +647,20 @@ export default function MusicPlayer() {
 
       {detailsOpen && (
         <div className="details-overlay" role="dialog" aria-modal="true" onClick={() => setDetailsOpen(false)}>
-          <section className="details-card glass-strong details-card-about" onClick={(event) => event.stopPropagation()}>
+          <section className="details-card glass-strong details-card-about details-card-about-mini" onClick={(event) => event.stopPropagation()}>
             <button className="details-close" onClick={() => setDetailsOpen(false)} type="button">
               关闭
             </button>
 
-            <header className="about-hero">
-              <div className="about-logo" aria-hidden="true">♪</div>
-              <div className="about-hero-text">
-                <h2 className="details-title">BawMusic</h2>
-                <p className="details-subtitle">极简风在线音乐播放器</p>
-              </div>
-              <span className="about-version">v0.1.0</span>
-            </header>
-
-            <div className="details-section about-section">
-              <h3>关于本项目</h3>
-              <p>聚焦搜索、播放、歌词沉浸体验的轻量级 Web 音乐播放器。支持跨设备自适应交互，可打包为 Android 原生应用，所有数据均存储在本地。</p>
-            </div>
-
-            <div className="details-section about-section">
-              <h3>核心功能</h3>
-              <ul className="about-feature-list">
-                <li>搜索网易云音乐、获取歌曲详情与封面</li>
-                <li>同步滚动歌词，支持翻译对照</li>
-                <li>导入网易云歌单，或通过 JSON 文件备份/恢复播放列表</li>
-                <li>多种音质可选下载，HTML5 音频引擎 + MediaSession 锁屏控制</li>
-                <li>支持作为 PWA 安装，并打包为 Android (Capacitor)</li>
-              </ul>
-            </div>
-
-            <div className="details-section about-section">
-              <h3>技术栈</h3>
-              <div className="about-tech-grid">
-                <div className="about-tech-item">
-                  <span className="about-tech-name">Next.js</span>
-                  <span className="about-tech-version">16.2.4</span>
-                </div>
-                <div className="about-tech-item">
-                  <span className="about-tech-name">React</span>
-                  <span className="about-tech-version">19.2.4</span>
-                </div>
-                <div className="about-tech-item">
-                  <span className="about-tech-name">TypeScript</span>
-                  <span className="about-tech-version">5</span>
-                </div>
-                <div className="about-tech-item">
-                  <span className="about-tech-name">Capacitor</span>
-                  <span className="about-tech-version">8.3.1</span>
-                </div>
-                <div className="about-tech-item">
-                  <span className="about-tech-name">Node.js</span>
-                  <span className="about-tech-version">22.x</span>
-                </div>
-                <div className="about-tech-item">
-                  <span className="about-tech-name">样式方案</span>
-                  <span className="about-tech-version">原生 CSS Variables</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="details-section about-section">
-              <h3>项目仓库</h3>
-              <a className="details-link" href={repositoryUrl} target="_blank" rel="noreferrer">
-                {repositoryUrl}
+            <div className="about-mini">
+              <div className="about-mini-logo" aria-hidden="true">♪</div>
+              <h2 className="about-mini-title">BawMusic</h2>
+              <p className="about-mini-desc">一个极简的在线音乐播放器</p>
+              <p className="about-mini-author">作者：Han5N</p>
+              <a className="about-mini-link" href="https://afdian.com/a/han5n" target="_blank" rel="noreferrer">
+                爱发电支持
               </a>
             </div>
-
-            <footer className="about-footer">
-              <span>作者：音四中某ZiHan</span>
-              <span className="about-divider">·</span>
-              <span>仅供学习交流，请勿用于商业用途</span>
-            </footer>
           </section>
         </div>
       )}
