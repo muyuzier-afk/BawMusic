@@ -150,6 +150,7 @@ interface PlaylistDrawerProps {
   onClearPlaylist?: () => void;
   onRemoveItems?: (indices: number[]) => void;
   onImport?: () => void;
+  onExport?: () => void;
 }
 
 export function PlaylistDrawer({
@@ -162,7 +163,8 @@ export function PlaylistDrawer({
   onRemoveItem,
   onClearPlaylist,
   onRemoveItems,
-  onImport
+  onImport,
+  onExport
 }: PlaylistDrawerProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [swipingIndex, setSwipingIndex] = useState<number | null>(null);
@@ -170,6 +172,7 @@ export function PlaylistDrawer({
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [isDesktop, setIsDesktop] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
 
   const longPressTimerRef = useRef<number | null>(null);
   const gestureModeRef = useRef<'idle' | 'swipe' | 'drag'>('idle');
@@ -191,6 +194,7 @@ export function PlaylistDrawer({
     if (!isOpen) {
       setSelectedIndices(new Set());
       setShowClearConfirm(false);
+      setSelectionMode(false);
     }
   }, [isOpen]);
 
@@ -318,6 +322,7 @@ export function PlaylistDrawer({
     if (selectedIndices.size === 0 || !onRemoveItems) return;
     onRemoveItems(Array.from(selectedIndices));
     setSelectedIndices(new Set());
+    setSelectionMode(false);
   }, [selectedIndices, onRemoveItems]);
 
   const handleClearPlaylist = useCallback(() => {
@@ -376,6 +381,12 @@ export function PlaylistDrawer({
                     导入歌单
                   </button>
                 )}
+                {onExport && (
+                  <button className="playlist-toolbar-btn" onClick={onExport} type="button" disabled={playlist.length === 0}>
+                    <DownloadIcon size={14} />
+                    导出 JSON
+                  </button>
+                )}
                 {hasSelection && onRemoveItems && (
                   <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleBatchDelete} type="button">
                     <TrashIcon size={14} />
@@ -383,6 +394,55 @@ export function PlaylistDrawer({
                   </button>
                 )}
                 {onClearPlaylist && (
+                  <button className="playlist-toolbar-btn" onClick={() => setShowClearConfirm(true)} type="button">
+                    清空列表
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isDesktop && (
+          <div className="playlist-toolbar playlist-toolbar-mobile">
+            {showClearConfirm ? (
+              <div className="playlist-toolbar-confirm">
+                <span className="playlist-toolbar-text">确定清空列表？</span>
+                <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleClearPlaylist} type="button">
+                  确定
+                </button>
+                <button className="playlist-toolbar-btn" onClick={() => setShowClearConfirm(false)} type="button">
+                  取消
+                </button>
+              </div>
+            ) : (
+              <div className="playlist-toolbar-actions">
+                {onExport && (
+                  <button className="playlist-toolbar-btn" onClick={onExport} type="button" disabled={playlist.length === 0}>
+                    <DownloadIcon size={14} />
+                    导出 JSON
+                  </button>
+                )}
+                <button
+                  className={`playlist-toolbar-btn ${selectionMode ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectionMode(prev => {
+                      if (prev) setSelectedIndices(new Set());
+                      return !prev;
+                    });
+                  }}
+                  type="button"
+                >
+                  <CheckIcon size={14} />
+                  {selectionMode ? '取消多选' : '多选删除'}
+                </button>
+                {selectionMode && hasSelection && onRemoveItems && (
+                  <button className="playlist-toolbar-btn playlist-toolbar-btn-danger" onClick={handleBatchDelete} type="button">
+                    <TrashIcon size={14} />
+                    删除 ({selectedIndices.size})
+                  </button>
+                )}
+                {selectionMode && onClearPlaylist && (
                   <button className="playlist-toolbar-btn" onClick={() => setShowClearConfirm(true)} type="button">
                     清空列表
                   </button>
@@ -411,7 +471,7 @@ export function PlaylistDrawer({
                 onTouchCancel={handleTouchCancel}
                 onClick={(event) => handleItemClick(index, event)}
               >
-                {isDesktop && (
+                {(isDesktop || selectionMode) && (
                   <button
                     className={`playlist-checkbox ${selectedIndices.has(index) ? 'checked' : ''}`}
                     onClick={(e) => {
