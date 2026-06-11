@@ -653,12 +653,11 @@ export default function MusicPlayer() {
             </button>
 
             <div className="about-mini">
-              <div className="about-mini-logo" aria-hidden="true">♪</div>
               <h2 className="about-mini-title">BawMusic</h2>
               <p className="about-mini-desc">一个极简的在线音乐播放器</p>
               <p className="about-mini-author">作者：Han5N</p>
               <a className="about-mini-link" href="https://afdian.com/a/han5n" target="_blank" rel="noreferrer">
-                爱发电支持
+                爱发电支持 ↗
               </a>
             </div>
           </section>
