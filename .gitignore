@@ -44,3 +44,6 @@ next-env.d.ts
 .monkeycode/
 AGENTS.md
 CLAUDE.md
+
+# sibling projects (each has its own repo)
+/BawTV/
