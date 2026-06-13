@@ -150,6 +150,8 @@ interface PlaylistDrawerProps {
   onClearPlaylist?: () => void;
   onRemoveItems?: (indices: number[]) => void;
   onImport?: () => void;
+  apiSource?: 'main' | 'backup';
+  onChangeApiSource?: (source: 'main' | 'backup') => void;
 }
 
 export function PlaylistDrawer({
@@ -162,7 +164,9 @@ export function PlaylistDrawer({
   onRemoveItem,
   onClearPlaylist,
   onRemoveItems,
-  onImport
+  onImport,
+  apiSource,
+  onChangeApiSource
 }: PlaylistDrawerProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [swipingIndex, setSwipingIndex] = useState<number | null>(null);
@@ -350,6 +354,18 @@ export function PlaylistDrawer({
               <button className="playlist-toolbar-btn" onClick={onImport} type="button">
                 <ImportIcon size={14} />
                 导入歌单
+              </button>
+            )}
+            {apiSource && onChangeApiSource && (
+              <button
+                className="playlist-source-toggle"
+                onClick={() => onChangeApiSource(apiSource === 'main' ? 'backup' : 'main')}
+                type="button"
+                title={`当前 API 源: ${apiSource === 'main' ? 'Main' : 'Backup'}, 点击切换`}
+                aria-label={`当前 API 源 ${apiSource === 'main' ? 'Main' : 'Backup'}, 点击切换`}
+              >
+                <span className={`playlist-source-dot ${apiSource}`} aria-hidden="true" />
+                源 · {apiSource === 'main' ? 'Main' : 'Backup'}
               </button>
             )}
             <span className="playlist-count">{playlist.length} 首歌曲</span>

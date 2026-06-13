@@ -14,7 +14,7 @@ import { ListIcon, ImportIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
-import { fetchPlaylist, extractPlaylistId } from '@/lib/api';
+import { fetchPlaylist, extractPlaylistId, getApiSource, setApiSource, type ApiSource } from '@/lib/api';
 
 export default function MusicPlayer() {
   const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
@@ -62,6 +62,7 @@ export default function MusicPlayer() {
   const [importOpen, setImportOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importBusy, setImportBusy] = useState(false);
+  const [apiSource, setApiSourceState] = useState<ApiSource>(() => getApiSource());
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
   
@@ -151,6 +152,12 @@ export default function MusicPlayer() {
       setImportBusy(false);
     }
   }, [importUrl, importBusy, showNotice, clearPlaylist, addToPlaylist]);
+
+  const handleChangeApiSource = useCallback((source: ApiSource) => {
+    setApiSource(source);
+    setApiSourceState(source);
+    showNotice(source === 'main' ? '已切换到 Main 源（chksz）' : '已切换到 Backup 源（t8+meting）');
+  }, [showNotice]);
 
   useEffect(() => {
     if (!currentSong) {
@@ -411,6 +418,8 @@ export default function MusicPlayer() {
         onClearPlaylist={clearPlaylist}
         onRemoveItems={removePlaylistItems}
         onImport={() => setImportOpen(true)}
+        apiSource={apiSource}
+        onChangeApiSource={handleChangeApiSource}
       />
 
       <DownloadMenu
