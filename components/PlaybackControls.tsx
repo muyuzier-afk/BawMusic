@@ -356,21 +356,42 @@ export function PlaylistDrawer({
                 导入歌单
               </button>
             )}
-            {apiSource && onChangeApiSource && (
-              <button
-                className="playlist-source-toggle"
-                onClick={() => onChangeApiSource(apiSource === 'main' ? 'backup' : 'main')}
-                type="button"
-                title={`当前 API 源: ${apiSource === 'main' ? 'Main' : 'Backup'}, 点击切换`}
-                aria-label={`当前 API 源 ${apiSource === 'main' ? 'Main' : 'Backup'}, 点击切换`}
-              >
-                <span className={`playlist-source-dot ${apiSource}`} aria-hidden="true" />
-                源 · {apiSource === 'main' ? 'Main' : 'Backup'}
-              </button>
-            )}
             <span className="playlist-count">{playlist.length} 首歌曲</span>
           </div>
         </div>
+
+        {apiSource && onChangeApiSource && (
+          <div className="source-switcher" role="radiogroup" aria-label="API 数据源">
+            <span className="source-switcher-label">数据源</span>
+            <div className="source-switcher-pill">
+              <button
+                className={`source-segment ${apiSource === 'main' ? 'active' : ''}`}
+                onClick={() => onChangeApiSource('main')}
+                type="button"
+                role="radio"
+                aria-checked={apiSource === 'main'}
+                title="chksz.top · 速度快 · 网易云资源"
+              >
+                <span className={`source-segment-dot ${apiSource === 'main' ? 'main' : ''}`} aria-hidden="true" />
+                chksz
+              </button>
+              <button
+                className={`source-segment ${apiSource === 'backup' ? 'active' : ''}`}
+                onClick={() => onChangeApiSource('backup')}
+                type="button"
+                role="radio"
+                aria-checked={apiSource === 'backup'}
+                title="t8 + meting · 兜底源 · 含翻译歌词"
+              >
+                <span className={`source-segment-dot ${apiSource === 'backup' ? 'backup' : ''}`} aria-hidden="true" />
+                t8+meting
+              </button>
+            </div>
+            <span className="source-switcher-hint">
+              {apiSource === 'main' ? 'chksz.top 当前活跃' : 't8 + meting 当前活跃'}
+            </span>
+          </div>
+        )}
 
         {isDesktop && (
           <div className="playlist-toolbar">

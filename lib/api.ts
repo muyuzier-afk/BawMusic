@@ -38,7 +38,17 @@ export function setApiSource(s: ApiSource) {
 }
 
 export function getApiSourceLabel(s: ApiSource = currentSource): string {
-  return s === 'main' ? 'Main' : 'Backup';
+  return s === 'main' ? 'chksz.top' : 't8 + meting';
+}
+
+export function getApiSourceShortLabel(s: ApiSource = currentSource): string {
+  return s === 'main' ? 'chksz' : 't8+meting';
+}
+
+export function getApiSourceDescription(s: ApiSource = currentSource): string {
+  return s === 'main'
+    ? 'chksz.top · 速度快 · 网易云资源'
+    : 't8 + meting · 兜底源 · 含翻译歌词';
 }
 
 // ============================

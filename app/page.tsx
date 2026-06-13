@@ -154,10 +154,11 @@ export default function MusicPlayer() {
   }, [importUrl, importBusy, showNotice, clearPlaylist, addToPlaylist]);
 
   const handleChangeApiSource = useCallback((source: ApiSource) => {
+    if (source === apiSource) return;
     setApiSource(source);
     setApiSourceState(source);
-    showNotice(source === 'main' ? '已切换到 Main 源（chksz）' : '已切换到 Backup 源（t8+meting）');
-  }, [showNotice]);
+    showNotice(source === 'main' ? '数据源已切换为 chksz.top' : '数据源已切换为 t8 + meting');
+  }, [apiSource, showNotice]);
 
   useEffect(() => {
     if (!currentSong) {
