@@ -157,7 +157,7 @@ export default function MusicPlayer() {
     if (source === apiSource) return;
     setApiSource(source);
     setApiSourceState(source);
-    showNotice(source === 'main' ? '数据源已切换为 chksz.top' : '数据源已切换为 t8 + meting');
+    showNotice(source === 'main' ? '已切换到 MAIN' : '已切换到 BACKUP');
   }, [apiSource, showNotice]);
 
   useEffect(() => {

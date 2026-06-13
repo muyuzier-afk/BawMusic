@@ -362,7 +362,6 @@ export function PlaylistDrawer({
 
         {apiSource && onChangeApiSource && (
           <div className="source-switcher" role="radiogroup" aria-label="API 数据源">
-            <span className="source-switcher-label">数据源</span>
             <div className="source-switcher-pill">
               <button
                 className={`source-segment ${apiSource === 'main' ? 'active' : ''}`}
@@ -370,10 +369,9 @@ export function PlaylistDrawer({
                 type="button"
                 role="radio"
                 aria-checked={apiSource === 'main'}
-                title="chksz.top · 速度快 · 网易云资源"
+                title="MAIN · 速度较快"
               >
-                <span className={`source-segment-dot ${apiSource === 'main' ? 'main' : ''}`} aria-hidden="true" />
-                chksz
+                MAIN
               </button>
               <button
                 className={`source-segment ${apiSource === 'backup' ? 'active' : ''}`}
@@ -381,15 +379,11 @@ export function PlaylistDrawer({
                 type="button"
                 role="radio"
                 aria-checked={apiSource === 'backup'}
-                title="t8 + meting · 兜底源 · 含翻译歌词"
+                title="BACKUP · 兜底源"
               >
-                <span className={`source-segment-dot ${apiSource === 'backup' ? 'backup' : ''}`} aria-hidden="true" />
-                t8+meting
+                BACKUP
               </button>
             </div>
-            <span className="source-switcher-hint">
-              {apiSource === 'main' ? 'chksz.top 当前活跃' : 't8 + meting 当前活跃'}
-            </span>
           </div>
         )}
 
