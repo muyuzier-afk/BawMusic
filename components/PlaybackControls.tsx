@@ -349,7 +349,31 @@ export function PlaylistDrawer({
         <div className="playlist-handle" onClick={onClose} />
         <div className="playlist-header">
           <span className="playlist-title">播放列表</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="playlist-header-actions">
+            {apiSource && onChangeApiSource && (
+              <div className="source-switcher source-switcher-inline" role="radiogroup" aria-label="API 数据源">
+                <button
+                  className={`source-segment ${apiSource === 'main' ? 'active' : ''}`}
+                  onClick={() => onChangeApiSource('main')}
+                  type="button"
+                  role="radio"
+                  aria-checked={apiSource === 'main'}
+                  title="MAIN · 速度较快"
+                >
+                  MAIN
+                </button>
+                <button
+                  className={`source-segment ${apiSource === 'backup' ? 'active' : ''}`}
+                  onClick={() => onChangeApiSource('backup')}
+                  type="button"
+                  role="radio"
+                  aria-checked={apiSource === 'backup'}
+                  title="BACKUP · 兜底源"
+                >
+                  BACKUP
+                </button>
+              </div>
+            )}
             {!isDesktop && onImport && (
               <button className="playlist-toolbar-btn" onClick={onImport} type="button">
                 <ImportIcon size={14} />
@@ -359,33 +383,6 @@ export function PlaylistDrawer({
             <span className="playlist-count">{playlist.length} 首歌曲</span>
           </div>
         </div>
-
-        {apiSource && onChangeApiSource && (
-          <div className="source-switcher" role="radiogroup" aria-label="API 数据源">
-            <div className="source-switcher-pill">
-              <button
-                className={`source-segment ${apiSource === 'main' ? 'active' : ''}`}
-                onClick={() => onChangeApiSource('main')}
-                type="button"
-                role="radio"
-                aria-checked={apiSource === 'main'}
-                title="MAIN · 速度较快"
-              >
-                MAIN
-              </button>
-              <button
-                className={`source-segment ${apiSource === 'backup' ? 'active' : ''}`}
-                onClick={() => onChangeApiSource('backup')}
-                type="button"
-                role="radio"
-                aria-checked={apiSource === 'backup'}
-                title="BACKUP · 兜底源"
-              >
-                BACKUP
-              </button>
-            </div>
-          </div>
-        )}
 
         {isDesktop && (
           <div className="playlist-toolbar">

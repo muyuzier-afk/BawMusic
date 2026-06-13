@@ -1559,25 +1559,25 @@ body.immersive-shell {
   }
 }
 
-/* API source switcher (in playlist drawer) */
-.source-switcher {
+/* API source switcher (in playlist header) */
+.playlist-header-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 4px 20px 8px;
+  gap: 10px;
 }
 
-.source-switcher-pill {
+.source-switcher-inline {
   display: inline-flex;
   align-items: center;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   padding: 2px;
+  flex-shrink: 0;
 }
 
 .source-segment {
-  padding: 4px 14px;
+  padding: 3px 12px;
   font-size: 11px;
   font-weight: 500;
   font-family: inherit;
