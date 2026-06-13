@@ -133,12 +133,20 @@ export function usePlayer(): UsePlayerReturn {
       try {
         const parsed = JSON.parse(cachedPlaylist) as unknown;
         if (isSongList(parsed)) {
-          setPlaylist(parsed);
+          // Deduplicate by song id, keeping the first occurrence to preserve order.
+          const seen = new Set<number>();
+          const deduped: Song[] = [];
+          for (const song of parsed) {
+            if (seen.has(song.id)) continue;
+            seen.add(song.id);
+            deduped.push(song);
+          }
+          setPlaylist(deduped);
 
           const cachedIndex = readValue(STORAGE_PLAYLIST_INDEX_KEY);
           if (cachedIndex) {
             const parsedIndex = Number(cachedIndex);
-            if (!Number.isNaN(parsedIndex) && parsedIndex >= 0 && parsedIndex < parsed.length) {
+            if (!Number.isNaN(parsedIndex) && parsedIndex >= 0 && parsedIndex < deduped.length) {
               setCurrentIndex(parsedIndex);
             }
           }
@@ -396,16 +404,22 @@ export function usePlayer(): UsePlayerReturn {
         picUrl: musicInfo.picUrl
       };
 
-      const nextIndex = playlist.length;
-      setPlaylist(prev => [...prev, song]);
-      setCurrentIndex(nextIndex);
+      setPlaylist(prev => {
+        if (prev.some(existing => existing.id === song.id)) {
+          const existingIndex = prev.findIndex(existing => existing.id === song.id);
+          setCurrentIndex(existingIndex);
+          return prev;
+        }
+        setCurrentIndex(prev.length);
+        return [...prev, song];
+      });
       updateHistory(song);
       await loadSong(song, { resolvedMusicInfo: musicInfo });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load shared song');
       setNotice('分享链接中的歌曲加载失败');
     }
-  }, [playlist, loadSong, updateHistory]);
+  }, [loadSong, updateHistory]);
 
   const togglePlay = useCallback(() => {
     if (!audioRef.current || !currentSong) return;
@@ -642,6 +656,9 @@ export function usePlayer(): UsePlayerReturn {
 
   const addToPlaylist = useCallback((song: Song) => {
     setPlaylist(prev => {
+      if (prev.some(existing => existing.id === song.id)) {
+        return prev;
+      }
       return [...prev, song];
     });
   }, []);

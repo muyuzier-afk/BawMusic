@@ -10,11 +10,15 @@ import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls'
 import { DownloadMenu } from '@/components/DownloadMenu';
 import { Sidebar } from '@/components/Sidebar';
 import { Song, AudioQuality } from '@/types/music';
-import { ListIcon, ImportIcon } from '@/components/Icons';
+import { ListIcon, ImportIcon, UploadIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
 import { fetchPlaylist, extractPlaylistId, getApiSource, setApiSource, type ApiSource } from '@/lib/api';
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
 export default function MusicPlayer() {
   const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
@@ -62,9 +66,12 @@ export default function MusicPlayer() {
   const [importOpen, setImportOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importBusy, setImportBusy] = useState(false);
+  const [importJsonBusy, setImportJsonBusy] = useState(false);
+  const [fatalError, setFatalError] = useState<string | null>(null);
   const [apiSource, setApiSourceState] = useState<ApiSource>(() => getApiSource());
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
   
   const bgImage = useMemo(() => {
     return normalizeMediaUrl(currentSong?.picUrl);
@@ -153,12 +160,114 @@ export default function MusicPlayer() {
     }
   }, [importUrl, importBusy, showNotice, clearPlaylist, addToPlaylist]);
 
+  const handleExportPlaylist = useCallback(() => {
+    if (playlist.length === 0) {
+      showNotice('当前播放列表为空，无需导出');
+      return;
+    }
+    try {
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        songs: playlist
+      };
+      const json = JSON.stringify(payload, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .replace('T', '_')
+        .slice(0, 19);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `playlist-${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showNotice(`已导出 ${playlist.length} 首歌曲`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '导出失败，请稍后重试';
+      setFatalError(message);
+    }
+  }, [playlist, showNotice]);
+
+  const handleImportJsonFile = useCallback(
+    async (file: File) => {
+      if (importJsonBusy) return;
+      setImportJsonBusy(true);
+      try {
+        const text = await file.text();
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          throw new Error('JSON 解析失败，请检查文件格式');
+        }
+
+        if (!isObject(parsed)) {
+          throw new Error('JSON 文件格式不正确');
+        }
+
+        const songsRaw = (parsed as { songs?: unknown }).songs;
+        if (!Array.isArray(songsRaw)) {
+          throw new Error('JSON 中未找到 songs 数组');
+        }
+
+        const songs: Song[] = [];
+        const seen = new Set<number>();
+        for (const entry of songsRaw) {
+          if (!isObject(entry)) continue;
+          const candidate = entry as Partial<Song>;
+          if (
+            typeof candidate.id === 'number' &&
+            typeof candidate.name === 'string' &&
+            typeof candidate.artists === 'string' &&
+            typeof candidate.album === 'string' &&
+            typeof candidate.picUrl === 'string'
+          ) {
+            if (seen.has(candidate.id)) continue;
+            seen.add(candidate.id);
+            songs.push({
+              id: candidate.id,
+              name: candidate.name,
+              artists: candidate.artists,
+              album: candidate.album,
+              picUrl: candidate.picUrl
+            });
+          }
+        }
+
+        if (songs.length === 0) {
+          throw new Error('JSON 中没有可识别的歌曲数据');
+        }
+
+        clearPlaylist();
+        for (const song of songs) {
+          addToPlaylist(song);
+        }
+        showNotice(`已从 JSON 导入 ${songs.length} 首歌曲`);
+        setImportOpen(false);
+        setPlaylistOpen(true);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '导入失败，请稍后重试';
+        setFatalError(message);
+      } finally {
+        setImportJsonBusy(false);
+        if (importFileInputRef.current) {
+          importFileInputRef.current.value = '';
+        }
+      }
+    },
+    [importJsonBusy, showNotice, clearPlaylist, addToPlaylist]
+  );
+
   const handleChangeApiSource = useCallback((source: ApiSource) => {
     if (source === apiSource) return;
     setApiSource(source);
     setApiSourceState(source);
-    showNotice(source === 'main' ? '已切换到 MAIN' : '已切换到 BACKUP');
-  }, [apiSource, showNotice]);
+  }, [apiSource]);
 
   useEffect(() => {
     if (!currentSong) {
@@ -419,6 +528,7 @@ export default function MusicPlayer() {
         onClearPlaylist={clearPlaylist}
         onRemoveItems={removePlaylistItems}
         onImport={() => setImportOpen(true)}
+        onExport={handleExportPlaylist}
         apiSource={apiSource}
         onChangeApiSource={handleChangeApiSource}
       />
@@ -452,9 +562,10 @@ export default function MusicPlayer() {
               关闭
             </button>
 
-            <h2 className="details-title">导入网易云歌单</h2>
-            <p className="details-subtitle">输入歌单链接或 ID，将自动清空当前列表并导入</p>
+            <h2 className="details-title">导入播放列表</h2>
+            <p className="details-subtitle">通过歌单链接或 JSON 文件导入，导入时会清空当前列表</p>
 
+            <h3 className="import-section-title">从网易云歌单导入</h3>
             <div className="import-field">
               <input
                 className="import-input"
@@ -484,38 +595,69 @@ export default function MusicPlayer() {
                 )}
               </button>
             </div>
+
+            <div className="import-divider">
+              <span>或</span>
+            </div>
+
+            <h3 className="import-section-title">从 JSON 文件导入</h3>
+            <p className="import-hint">选择之前导出的 JSON 文件，将覆盖当前列表</p>
+            <input
+              ref={importFileInputRef}
+              type="file"
+              accept="application/json,.json"
+              style={{ display: 'none' }}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleImportJsonFile(file);
+                }
+              }}
+            />
+            <div className="import-field">
+              <button
+                className="import-btn import-btn-wide"
+                onClick={() => importFileInputRef.current?.click()}
+                disabled={importJsonBusy}
+                type="button"
+              >
+                {importJsonBusy ? (
+                  <span className="loading-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+                ) : (
+                  <>
+                    <UploadIcon size={16} />
+                    选择 JSON 文件
+                  </>
+                )}
+              </button>
+            </div>
           </section>
         </div>
       )}
 
       {detailsOpen && (
         <div className="details-overlay" role="dialog" aria-modal="true" onClick={() => setDetailsOpen(false)}>
-          <section className="details-card glass-strong" onClick={(event) => event.stopPropagation()}>
+          <section
+            className="details-card glass-strong details-card-about details-card-about-mini"
+            onClick={(event) => event.stopPropagation()}
+          >
             <button className="details-close" onClick={() => setDetailsOpen(false)} type="button">
               关闭
             </button>
 
-            <h2 className="details-title">BawMusic</h2>
-            <p className="details-subtitle">极简风在线音乐播放器</p>
-
-            <div className="details-section">
-              <h3>项目信息</h3>
-              <p>聚焦搜索、播放、歌词沉浸体验的 Web 音乐播放器，支持跨设备自适应交互。</p>
-            </div>
-
-            <div className="details-section">
-              <h3>技术栈</h3>
-              <p>Next.js 16、React 19、TypeScript、原生 CSS Variables。</p>
-            </div>
-
-            <div className="details-section">
-              <h3>项目仓库</h3>
-              <a className="details-link" href={repositoryUrl} target="_blank" rel="noreferrer">
-                {repositoryUrl}
+            <div className="about-mini">
+              <h2 className="about-mini-title">BawMusic</h2>
+              <p className="about-mini-desc">一个极简的在线音乐播放器</p>
+              <p className="about-mini-author">作者：Han5N</p>
+              <a
+                className="about-mini-link"
+                href="https://afdian.com/a/han5n"
+                target="_blank"
+                rel="noreferrer"
+              >
+                爱发电支持 ↗
               </a>
             </div>
-
-            <div className="details-author">作者：音四中某ZiHan</div>
           </section>
         </div>
       )}
