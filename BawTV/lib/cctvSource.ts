@@ -4,8 +4,9 @@
 import type { Channel, ChannelBadge, SourceKey } from '@/types/cctv';
 
 // 数据源 1（MAIN）: TVBox 配置 → 文本格式频道列表
+// 注意：dev 模式直接 fetch，prod ER 函数受 ESA 边缘节点限制不能访问
+//       privileged port (< 1024)。源 URL 必须是 https 或高位端口
 const NGZMODS_JSON_URL = 'https://16409.kstore.vip/tv/ngzmods.json';
-const TVLIST_PHP_URL_FALLBACK = 'http://38.75.136.137:88/api/tvlist.php';
 
 // 数据源 2（BACKUP）: CCTV-5 HLS 单流
 const CCTV5_M3U8_URL = 'http://82.156.243.185:36888/av3a/cctv5n.m3u8';
@@ -99,7 +100,10 @@ async function fetchMainChannels(): Promise<Channel[]> {
   }
   const config = (await configRes.json()) as NgzmodsJson;
   const livesUrl = config?.lives?.[0]?.url;
-  const listUrl = livesUrl || TVLIST_PHP_URL_FALLBACK;
+  if (!livesUrl) {
+    throw new Error('源配置中缺少 lives[0].url');
+  }
+  const listUrl = livesUrl;
 
   // 2) 拉取频道列表
   const listRes = await fetch(listUrl, {

@@ -5,8 +5,10 @@
 //   2. 没匹配到时（且不是导航请求）会进入本函数
 //   3. 函数返回 Response 时会直接响应客户端
 // 实时数据：每次请求都从外部源拉取最新频道列表，不做 build-time 固化
+// 注意：ESA 边缘节点禁止访问 privileged port (< 1024)，源 URL 不能带
+//       80/88/443 之类的低端口。lives[0].url 如果是 privileged port 会
+//       在 fetch 时报错，由外层抛 fetch_failed
 const NGZMODS_JSON_URL = 'https://16409.kstore.vip/tv/ngzmods.json';
-const TVLIST_PHP_URL_FALLBACK = 'http://38.75.136.137:88/api/tvlist.php';
 const CCTV5_M3U8_URL = 'http://82.156.243.185:36888/av3a/cctv5n.m3u8';
 
 const CCTV_NAME_PREFIX = /^CCTV/i;
@@ -91,7 +93,10 @@ async function fetchMainChannels() {
   }
   const config = await configRes.json();
   const livesUrl = config && config.lives && config.lives[0] && config.lives[0].url;
-  const listUrl = livesUrl || TVLIST_PHP_URL_FALLBACK;
+  if (!livesUrl) {
+    throw new Error('源配置中缺少 lives[0].url');
+  }
+  const listUrl = livesUrl;
 
   const listRes = await fetchWithTimeout(listUrl);
   if (!listRes.ok) {
