@@ -2,14 +2,14 @@ import type { NextConfig } from 'next';
 import path from 'node:path';
 
 const nextConfig: NextConfig = {
-  // 适配 ESA Pages 纯静态托管
-  // 频道列表由 scripts/build-cctv-data.mjs 在 build 时生成到 public/data/，
-  // 这里用静态导出，无 server runtime
+  // 适配 ESA Pages：纯静态导出 + ER 边缘函数
+  // - 前端用 output: 'export' 产出 out/，作为静态资源托管
+  // - /api/cctv-channels 的实时数据由 functions/index.js ER 函数代理外部源
+  // - dev 模式下 app/api/cctv-channels/route.ts 仍负责本地接口
   output: 'export',
   images: {
     unoptimized: true,
   },
-  // 子目录里 BawTV 是 root；显式告诉 turbopack 避免和 BawMusic / MusicLanddingPage 混淆
   turbopack: {
     root: path.resolve(__dirname),
   },

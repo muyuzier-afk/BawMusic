@@ -1,14 +1,10 @@
-// 构建时抓取 CCTV 频道列表，输出到 public/data/cctv-channels.json
-// ESA Pages 是纯静态托管，没有 server runtime；客户端无法跨域拉外部源，
-// 所以在 build 阶段用 Node 抓一次数据并打包到 public 里，部署后客户端只
-// 要 fetch 同源静态文件即可。
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUT_PATH = path.resolve(__dirname, '..', 'public', 'data', 'cctv-channels.json');
-
+// ESA Pages ER 边缘函数入口
+// 部署时由 esa.jsonc 的 entry 字段引用
+// 路由规则（参考 ESA Pages 文档）：
+//   1. 客户端请求先匹配静态资源（out/ 目录）
+//   2. 没匹配到时（且不是导航请求）会进入本函数
+//   3. 函数返回 Response 时会直接响应客户端
+// 实时数据：每次请求都从外部源拉取最新频道列表，不做 build-time 固化
 const NGZMODS_JSON_URL = 'https://16409.kstore.vip/tv/ngzmods.json';
 const TVLIST_PHP_URL_FALLBACK = 'http://38.75.136.137:88/api/tvlist.php';
 const CCTV5_M3U8_URL = 'http://82.156.243.185:36888/av3a/cctv5n.m3u8';
@@ -55,20 +51,15 @@ function parseTvListText(text) {
     const line = raw.trim();
     if (!line) continue;
     if (line.endsWith(',#genre#')) continue;
-
     const commaIdx = line.indexOf(',');
     if (commaIdx <= 0) continue;
-
     const name = line.slice(0, commaIdx).trim();
     const url = line.slice(commaIdx + 1).trim();
-
     if (!name || !url) continue;
     if (!CCTV_NAME_PREFIX.test(name.trim())) continue;
     if (!/^https?:\/\//i.test(url)) continue;
-
     if (seenNames.has(name)) continue;
     seenNames.add(name);
-
     channels.push({
       id: uniqueSlug(slugify(name), seenIds),
       name,
@@ -76,17 +67,16 @@ function parseTvListText(text) {
       badge: extractBadge(name),
     });
   }
-
   return channels;
 }
 
-async function fetchWithTimeout(url, ms = 8000) {
+async function fetchWithTimeout(url, ms = 6000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
     return await fetch(url, {
       cache: 'no-store',
-      headers: { 'User-Agent': 'Mozilla/5.0 BawTV-Build' },
+      headers: { 'User-Agent': 'Mozilla/5.0 BawTV-Edge' },
       signal: ctrl.signal,
     });
   } finally {
@@ -100,7 +90,7 @@ async function fetchMainChannels() {
     throw new Error(`拉取源配置失败: HTTP ${configRes.status}`);
   }
   const config = await configRes.json();
-  const livesUrl = config?.lives?.[0]?.url;
+  const livesUrl = config && config.lives && config.lives[0] && config.lives[0].url;
   const listUrl = livesUrl || TVLIST_PHP_URL_FALLBACK;
 
   const listRes = await fetchWithTimeout(listUrl);
@@ -112,8 +102,6 @@ async function fetchMainChannels() {
 }
 
 function buildBackupChannels() {
-  // BACKUP 源只有一个 m3u8 单流，构建时不做可达性检查（避免 CI 抖动）
-  // 客户端拉到这条频道后再用 hls.js 加载；失败会触发 VideoPlayer 错误态
   return [
     {
       id: 'cctv-5plus',
@@ -124,35 +112,48 @@ function buildBackupChannels() {
   ];
 }
 
-async function main() {
-  const fetchedAt = new Date().toISOString();
-  const out = { fetchedAt, main: { channels: [], error: null }, backup: { channels: [], error: null } };
-
-  try {
-    out.main.channels = await fetchMainChannels();
-  } catch (err) {
-    out.main.error = err instanceof Error ? err.message : 'unknown';
-    console.warn(`[build-cctv-data] MAIN 抓取失败: ${out.main.error}`);
-  }
-
-  out.backup.channels = buildBackupChannels();
-
-  fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
-  fs.writeFileSync(OUT_PATH, JSON.stringify(out, null, 2) + '\n', 'utf-8');
-  console.log(
-    `[build-cctv-data] 写入 ${OUT_PATH}  (main=${out.main.channels.length} backup=${out.backup.channels.length})`
-  );
+function jsonResponse(body, status) {
+  return new Response(JSON.stringify(body), {
+    status: status || 200,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+      'access-control-allow-origin': '*',
+    },
+  });
 }
 
-main().catch((err) => {
-  console.error('[build-cctv-data] 失败:', err);
-  // 不让构建整体失败：写一份空数据，部署后客户端会显示"暂无频道"提示
-  const fallback = {
-    fetchedAt: new Date().toISOString(),
-    main: { channels: [], error: err?.message ?? 'unknown' },
-    backup: { channels: [], error: null },
-  };
-  fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
-  fs.writeFileSync(OUT_PATH, JSON.stringify(fallback, null, 2) + '\n', 'utf-8');
-  process.exit(0);
-});
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+
+    if (url.pathname === '/api/cctv-channels') {
+      const source = url.searchParams.get('source') || 'main';
+      const fetchedAt = new Date().toISOString();
+
+      try {
+        let channels;
+        if (source === 'main') {
+          channels = await fetchMainChannels();
+        } else if (source === 'backup') {
+          channels = buildBackupChannels();
+        } else {
+          return jsonResponse(
+            {
+              error: 'invalid_source',
+              message: 'source 必须是 main | backup',
+            },
+            400
+          );
+        }
+        return jsonResponse({ source, fetchedAt, channels });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '拉取频道失败';
+        return jsonResponse({ error: 'fetch_failed', message }, 502);
+      }
+    }
+
+    // 其他路径交由静态资源 / SPA fallback 处理
+    return new Response('Not Found', { status: 404 });
+  },
+};

@@ -15,9 +15,6 @@
 /.next/
 /out/
 
-# 构建时生成的数据（不要提交，npm run prebuild 会重写）
-/public/data/cctv-channels.json
-
 # production
 /build
 

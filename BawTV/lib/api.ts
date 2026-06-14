@@ -1,66 +1,26 @@
-// 客户端 API 封装：从同源静态 JSON 读取 CCTV 频道
-// 数据是在 build 阶段由 scripts/build-cctv-data.mjs 生成到
-// public/data/cctv-channels.json 的，ESA Pages 静态托管下不会有 CORS 问题
-import type { CctvChannelResponse, SourceKey } from '@/types/cctv';
+// 客户端 API 封装：调用同源 /api/cctv-channels 拉取 CCTV 频道
+// dev 模式由 app/api/cctv-channels/route.ts（Next.js Route Handler）处理
+// 生产部署由 functions/index.js（ESA Pages ER 边缘函数）处理
+// 两条路径都返回同样的 JSON 结构
+import type { CctvChannelResponse, CctvErrorResponse, SourceKey } from '@/types/cctv';
 
-const STATIC_PATH = '/data/cctv-channels.json';
-
-// 静态数据文件内容结构（构建脚本产出）
-type StaticChannelsFile = {
-  fetchedAt: string;
-  main: { channels: CctvChannelResponse['channels']; error: string | null };
-  backup: { channels: CctvChannelResponse['channels']; error: string | null };
-};
+const API_PATH = '/api/cctv-channels';
 
 export type FetchChannelsResult =
   | { ok: true; data: CctvChannelResponse }
   | { ok: false; error: string };
 
-// 内存缓存：避免每次切换源都重新 fetch
-let cache: StaticChannelsFile | null = null;
-let cachePromise: Promise<StaticChannelsFile> | null = null;
-
-async function loadStatic(): Promise<StaticChannelsFile> {
-  if (cache) return cache;
-  if (cachePromise) return cachePromise;
-
-  cachePromise = fetch(`${STATIC_PATH}?t=${Date.now()}`, { cache: 'no-store' })
-    .then(async (res) => {
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      return (await res.json()) as StaticChannelsFile;
-    })
-    .then((data) => {
-      cache = data;
-      return data;
-    })
-    .catch((err) => {
-      cachePromise = null;
-      throw err;
-    });
-
-  return cachePromise;
-}
-
 export async function fetchChannels(source: SourceKey): Promise<FetchChannelsResult> {
   try {
-    const data = await loadStatic();
-    const entry = data[source];
-    if (!entry) {
-      return { ok: false, error: `未知源: ${source}` };
+    const res = await fetch(`${API_PATH}?source=${source}`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as CctvErrorResponse | null;
+      return { ok: false, error: body?.message || `HTTP ${res.status}` };
     }
-    if (entry.error) {
-      return { ok: false, error: entry.error };
-    }
-    return {
-      ok: true,
-      data: {
-        source,
-        fetchedAt: data.fetchedAt,
-        channels: entry.channels,
-      },
-    };
+    const data = (await res.json()) as CctvChannelResponse;
+    return { ok: true, data };
   } catch (err) {
     const message = err instanceof Error ? err.message : '网络异常';
     return { ok: false, error: message };
