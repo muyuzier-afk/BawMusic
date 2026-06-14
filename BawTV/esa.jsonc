@@ -1,0 +1,10 @@
+{
+  "$schema": "https://help.aliyun.com/esa_docs/schema.json#",
+  "name": "baw-tv",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "assets": {
+    "directory": "./out",
+    "notFoundStrategy": "singlePageApplication"
+  }
+}

@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "out", ".next", "../BawMusic", "../android", "../MusicLanddingPage", "../app", "../components", "../hooks", "../lib", "../types", "../public", "../scripts"]
 }
