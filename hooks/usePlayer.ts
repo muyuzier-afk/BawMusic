@@ -69,6 +69,7 @@ interface UsePlayerReturn {
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
   setAudioQuality: (quality: AudioQuality) => void;
+  reFetchCurrentSong: () => void;
   cyclePlayMode: () => void;
   playNext: () => void;
   playPrev: () => void;
@@ -475,6 +476,16 @@ export function usePlayer(): UsePlayerReturn {
     });
   }, [currentSong, isPlaying, loadSong]);
 
+  const reFetchCurrentSong = useCallback(() => {
+    if (!currentSong) return;
+    const currentPosition = audioRef.current?.currentTime ?? 0;
+    const shouldAutoPlay = Boolean(isPlaying);
+    void loadSong(currentSong, {
+      startTime: currentPosition,
+      autoPlay: shouldAutoPlay
+    });
+  }, [currentSong, isPlaying, loadSong]);
+
   const cyclePlayMode = useCallback(() => {
     setPlayMode(prev => {
       if (prev === 'list') return 'shuffle';
@@ -863,6 +874,7 @@ export function usePlayer(): UsePlayerReturn {
     seek,
     setVolume,
     setAudioQuality,
+    reFetchCurrentSong,
     cyclePlayMode,
     playNext,
     playPrev,

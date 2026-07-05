@@ -151,8 +151,6 @@ interface PlaylistDrawerProps {
   onRemoveItems?: (indices: number[]) => void;
   onImport?: () => void;
   onExport?: () => void;
-  apiSource?: 'main' | 'backup';
-  onChangeApiSource?: (source: 'main' | 'backup') => void;
 }
 
 export function PlaylistDrawer({
@@ -166,9 +164,7 @@ export function PlaylistDrawer({
   onClearPlaylist,
   onRemoveItems,
   onImport,
-  onExport,
-  apiSource,
-  onChangeApiSource
+  onExport
 }: PlaylistDrawerProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [swipingIndex, setSwipingIndex] = useState<number | null>(null);
@@ -354,30 +350,6 @@ export function PlaylistDrawer({
         <div className="playlist-header">
           <span className="playlist-title">播放列表</span>
           <div className="playlist-header-actions">
-            {apiSource && onChangeApiSource && (
-              <div className="source-switcher source-switcher-inline" role="radiogroup" aria-label="API 数据源">
-                <button
-                  className={`source-segment ${apiSource === 'main' ? 'active' : ''}`}
-                  onClick={() => onChangeApiSource('main')}
-                  type="button"
-                  role="radio"
-                  aria-checked={apiSource === 'main'}
-                  title="MAIN · 速度较快"
-                >
-                  MAIN
-                </button>
-                <button
-                  className={`source-segment ${apiSource === 'backup' ? 'active' : ''}`}
-                  onClick={() => onChangeApiSource('backup')}
-                  type="button"
-                  role="radio"
-                  aria-checked={apiSource === 'backup'}
-                  title="BACKUP · 兜底源"
-                >
-                  BACKUP
-                </button>
-              </div>
-            )}
             {!isDesktop && onImport && (
               <button className="playlist-toolbar-btn" onClick={onImport} type="button">
                 <ImportIcon size={14} />

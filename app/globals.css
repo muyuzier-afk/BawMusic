@@ -1702,8 +1702,22 @@ body.immersive-shell {
   flex-shrink: 0;
 }
 
+.source-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.source-switcher-compact {
+  padding: 2px;
+}
+
 .source-segment {
-  padding: 3px 12px;
+  padding: 4px 12px;
   font-size: 11px;
   font-weight: 500;
   font-family: inherit;
@@ -1715,13 +1729,51 @@ body.immersive-shell {
   cursor: pointer;
   transition: color 0.15s ease, background 0.15s ease;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
 }
 
-.source-segment:hover:not(.active) {
+.source-segment:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.source-switcher-compact .source-segment {
+  padding: 3px 10px;
+  font-size: 10.5px;
+}
+
+.source-segment:hover:not(.active):not(:disabled) {
   color: rgba(255, 255, 255, 0.8);
 }
 
 .source-segment.active {
   color: rgba(255, 255, 255, 0.95);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.source-segment.active[aria-checked="true"] {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.top-bar-source-switcher {
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .top-bar {
+    gap: 8px;
+    padding: 12px 14px;
+  }
+
+  .top-bar-source-switcher .source-segment {
+    padding: 3px 7px;
+    font-size: 9.5px;
+    letter-spacing: 0;
+  }
+
+  .search-container {
+    max-width: 100%;
+  }
 }

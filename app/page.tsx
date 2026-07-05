@@ -7,6 +7,7 @@ import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
 import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls';
+import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { DownloadMenu } from '@/components/DownloadMenu';
 import { Sidebar } from '@/components/Sidebar';
 import { Song, AudioQuality } from '@/types/music';
@@ -14,7 +15,7 @@ import { ListIcon, ImportIcon, UploadIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
-import { fetchPlaylist, extractPlaylistId, getApiSource, setApiSource, type ApiSource } from '@/lib/api';
+import { fetchPlaylist, extractPlaylistId, setApiSource, useApiSource, type ApiSource } from '@/lib/api';
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -42,6 +43,7 @@ export default function MusicPlayer() {
     seek,
     setVolume,
     setAudioQuality,
+    reFetchCurrentSong,
     cyclePlayMode,
     playNext,
     playPrev,
@@ -54,6 +56,8 @@ export default function MusicPlayer() {
     clearNotice,
     showNotice
   } = usePlayer();
+
+  const apiSource = useApiSource();
   
   const [currentView, setCurrentView] = useState<'discover' | 'library'>('discover');
   const [playlistOpen, setPlaylistOpen] = useState(false);
@@ -68,7 +72,6 @@ export default function MusicPlayer() {
   const [importBusy, setImportBusy] = useState(false);
   const [importJsonBusy, setImportJsonBusy] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
-  const [apiSource, setApiSourceState] = useState<ApiSource>(() => getApiSource());
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -266,8 +269,11 @@ export default function MusicPlayer() {
   const handleChangeApiSource = useCallback((source: ApiSource) => {
     if (source === apiSource) return;
     setApiSource(source);
-    setApiSourceState(source);
-  }, [apiSource]);
+    showNotice(`已切换至 ${source === 'main' ? 'MAIN' : 'BACKUP'} 源`);
+    if (currentSong) {
+      reFetchCurrentSong();
+    }
+  }, [apiSource, currentSong, reFetchCurrentSong, showNotice]);
 
   useEffect(() => {
     if (!currentSong) {
@@ -413,6 +419,12 @@ export default function MusicPlayer() {
         <main className="main-content">
           <header className="top-bar glass">
             <SearchBar onSongSelect={handlePlaySong} />
+            <SourceSwitcher
+              value={apiSource}
+              onChange={handleChangeApiSource}
+              size="compact"
+              className="top-bar-source-switcher"
+            />
             <button
               className="details-btn details-btn-mobile-inline"
               onClick={() => setDetailsOpen(true)}
@@ -529,8 +541,6 @@ export default function MusicPlayer() {
         onRemoveItems={removePlaylistItems}
         onImport={() => setImportOpen(true)}
         onExport={handleExportPlaylist}
-        apiSource={apiSource}
-        onChangeApiSource={handleChangeApiSource}
       />
 
       <DownloadMenu

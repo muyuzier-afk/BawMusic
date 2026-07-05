@@ -1,5 +1,6 @@
 import { Song, MusicInfo, LyricData, AudioQuality } from '@/types/music';
 import { normalizeMediaUrl } from '@/lib/media';
+import { useSyncExternalStore } from 'react';
 
 // ============================
 // API 源管理
@@ -22,11 +23,33 @@ function readPersistedSource(): ApiSource {
 
 let currentSource: ApiSource = readPersistedSource();
 
+// 订阅机制：让所有 React 组件能实时感知源切换
+type ApiSourceListener = (source: ApiSource) => void;
+const apiSourceListeners = new Set<ApiSourceListener>();
+
+export function subscribeApiSource(listener: ApiSourceListener): () => void {
+  apiSourceListeners.add(listener);
+  return () => {
+    apiSourceListeners.delete(listener);
+  };
+}
+
 export function getApiSource(): ApiSource {
   return currentSource;
 }
 
 export function setApiSource(s: ApiSource) {
+  if (currentSource === s) {
+    // 即使没变也保证 localStorage 写入
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(SOURCE_KEY, s);
+      } catch {
+        // ignore quota errors
+      }
+    }
+    return;
+  }
   currentSource = s;
   if (typeof localStorage !== 'undefined') {
     try {
@@ -35,6 +58,13 @@ export function setApiSource(s: ApiSource) {
       // ignore quota errors
     }
   }
+  apiSourceListeners.forEach((listener) => {
+    try {
+      listener(s);
+    } catch {
+      // ignore listener errors
+    }
+  });
 }
 
 export function getApiSourceLabel(s: ApiSource = currentSource): string {
@@ -658,4 +688,20 @@ export function extractPlaylistId(input: string): string | null {
     // ignore invalid URL
   }
   return null;
+}
+
+// ============================
+// React 集成：保证 UI 与模块级 currentSource 始终一致
+// ============================
+// 修复：刷新页面后 React state 与 模块级 currentSource 不一致的 bug。
+// 旧实现 useState(() => getApiSource()) 会在 SSR 渲染时取 'main'，客户端 hydrate 时
+// 直接复用该 state，导致 UI 与实际 API 行为不同步。
+// 这里用 useSyncExternalStore 把 React state 绑定到 currentSource 的订阅上。
+
+export function useApiSource(): ApiSource {
+  return useSyncExternalStore(
+    subscribeApiSource,
+    getApiSource,
+    () => 'main'
+  );
 }
