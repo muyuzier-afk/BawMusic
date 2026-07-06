@@ -47,3 +47,6 @@ CLAUDE.md
 
 # sibling projects (each has its own repo)
 /BawTV/
+
+# build-time generated version metadata
+/lib/build-info.json

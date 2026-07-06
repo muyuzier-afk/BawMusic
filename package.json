@@ -7,7 +7,9 @@
     "npm": ">=10"
   },
   "scripts": {
+    "predev": "node scripts/build-info.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/build-info.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

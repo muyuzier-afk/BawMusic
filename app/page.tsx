@@ -16,6 +16,12 @@ import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
 import { fetchPlaylist, extractPlaylistId, setApiSource, useApiSource, type ApiSource } from '@/lib/api';
+import buildInfo from '@/lib/build-info.json';
+import versionsData from '@/versions.json';
+import type { BuildInfo, VersionsFile } from '@/lib/build-info-types';
+
+const build: BuildInfo = buildInfo as BuildInfo;
+const versionsFile: VersionsFile = versionsData as VersionsFile;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -75,6 +81,68 @@ export default function MusicPlayer() {
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
+  const titleClickCountRef = useRef(0);
+  const titleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [devUnlocked, setDevUnlocked] = useState(false);
+  const [devMenuOpen, setDevMenuOpen] = useState(false);
+  const [devHydrated, setDevHydrated] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
+
+  // 从 localStorage 读取开发者模式解锁状态（仅客户端）
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem('bawmusic:dev-unlocked');
+      if (stored === '1') setDevUnlocked(true);
+    } catch {
+      /* 忽略：隐私模式/Storage 不可用 */
+    }
+    setDevHydrated(true);
+  }, []);
+
+  // 解锁开发者模式：写入 localStorage 并打开菜单
+  const unlockDevMode = useCallback(() => {
+    setDevUnlocked(true);
+    setDevMenuOpen(true);
+    try {
+      window.localStorage.setItem('bawmusic:dev-unlocked', '1');
+    } catch {
+      /* 忽略 */
+    }
+  }, []);
+
+  // 处理 "BawMusic" 标题的连击：5 次解锁
+  const handleTitleClick = useCallback(() => {
+    if (devUnlocked) {
+      setDevMenuOpen(true);
+      return;
+    }
+    titleClickCountRef.current += 1;
+    if (titleClickTimerRef.current) {
+      clearTimeout(titleClickTimerRef.current);
+    }
+    titleClickTimerRef.current = setTimeout(() => {
+      titleClickCountRef.current = 0;
+      titleClickTimerRef.current = null;
+    }, 2000);
+    if (titleClickCountRef.current >= 5) {
+      titleClickCountRef.current = 0;
+      if (titleClickTimerRef.current) {
+        clearTimeout(titleClickTimerRef.current);
+        titleClickTimerRef.current = null;
+      }
+      unlockDevMode();
+    }
+  }, [devUnlocked, unlockDevMode]);
+
+  // 卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (titleClickTimerRef.current) {
+        clearTimeout(titleClickTimerRef.current);
+      }
+    };
+  }, []);
   
   const bgImage = useMemo(() => {
     return normalizeMediaUrl(currentSong?.picUrl);
@@ -656,9 +724,46 @@ export default function MusicPlayer() {
             </button>
 
             <div className="about-mini">
-              <h2 className="about-mini-title">BawMusic</h2>
+              <h2
+                className="about-mini-title about-mini-title-clickable"
+                onClick={handleTitleClick}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleTitleClick();
+                  }
+                }}
+                aria-label="BawMusic - 连续点击 5 次解锁开发者模式"
+              >
+                BawMusic
+              </h2>
               <p className="about-mini-desc">一个极简的在线音乐播放器</p>
               <p className="about-mini-author">作者：Han5N</p>
+              <button
+                type="button"
+                className="about-mini-version about-mini-version-clickable"
+                aria-label="查看更新日志"
+                onClick={() => {
+                  setDetailsOpen(false);
+                  setChangelogOpen(true);
+                }}
+              >
+                {build.sha} · {new Date(build.date).toLocaleString('zh-CN', { hour12: false })}
+              </button>
+              {devHydrated && devUnlocked && (
+                <button
+                  type="button"
+                  className="dev-menu-button"
+                  onClick={() => {
+                    setDetailsOpen(false);
+                    setDevMenuOpen(true);
+                  }}
+                >
+                  DevMenu
+                </button>
+              )}
               <a
                 className="about-mini-link"
                 href="https://afdian.com/a/han5n"
@@ -667,6 +772,216 @@ export default function MusicPlayer() {
               >
                 爱发电支持 ↗
               </a>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {changelogOpen && (
+        <div
+          className="details-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="更新日志"
+          onClick={() => setChangelogOpen(false)}
+        >
+          <section
+            className="details-card glass-strong details-card-changelog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button className="details-close" onClick={() => setChangelogOpen(false)} type="button">
+              关闭
+            </button>
+
+            <div className="changelog">
+              <h2 className="changelog-title">What's New</h2>
+              <p className="changelog-subtitle">
+                当前版本 <code>{build.sha}</code> · {new Date(build.date).toLocaleString('zh-CN', { hour12: false })}
+              </p>
+
+              {versionsFile.versions.length === 0 ? (
+                <p className="changelog-empty">暂无更新日志</p>
+              ) : (
+                <ul className="changelog-list">
+                  {versionsFile.versions.map((entry) => {
+                    const isCurrent = entry.sha === build.sha;
+                    return (
+                      <li
+                        key={entry.sha}
+                        className={`changelog-item ${isCurrent ? 'changelog-item-current' : ''}`}
+                      >
+                        <div className="changelog-item-head">
+                          <span className="changelog-item-sha">#{entry.sha}</span>
+                          <span className="changelog-item-date">
+                            {new Date(entry.date).toLocaleDateString('zh-CN')}
+                          </span>
+                          {isCurrent && <span className="changelog-item-badge">当前</span>}
+                        </div>
+                        <h3 className="changelog-item-title">{entry.title}</h3>
+                        <ul className="changelog-item-changes">
+                          {entry.highlights.map((line, i) => (
+                            <li key={i}>{line}</li>
+                          ))}
+                        </ul>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {devMenuOpen && (
+        <div
+          className="details-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="开发者模式菜单"
+          onClick={() => setDevMenuOpen(false)}
+        >
+          <section
+            className="details-card glass-strong details-card-devmenu"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button className="details-close" onClick={() => setDevMenuOpen(false)} type="button">
+              关闭
+            </button>
+
+            <div className="devmenu">
+              <h2 className="devmenu-title">DevMenu</h2>
+              <p className="devmenu-subtitle">
+                开发者模式 · 已解锁（仅本机 localStorage 持久化）
+              </p>
+
+              <ul className="devmenu-list">
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">构建 SHA</span>
+                  <code className="devmenu-item-value">{build.sha}</code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">构建时间</span>
+                  <code className="devmenu-item-value">
+                    {new Date(build.date).toLocaleString('zh-CN', { hour12: false })}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">API 源</span>
+                  <code className="devmenu-item-value">{apiSource}</code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">播放列表</span>
+                  <code className="devmenu-item-value">
+                    {playlist.length} 首
+                    {currentIndex >= 0 ? ` · 当前 #${currentIndex + 1}` : ''}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">当前歌曲</span>
+                  <code className="devmenu-item-value">
+                    {currentSong ? `${currentSong.name} · ${currentSong.artists}` : '—'}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">播放状态</span>
+                  <code className="devmenu-item-value">
+                    {isPlaying ? '▶ 播放中' : '⏸ 已暂停'} · {currentTime.toFixed(1)}s / {duration.toFixed(1)}s
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">音量</span>
+                  <code className="devmenu-item-value">{(volume * 100).toFixed(0)}%</code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">音质</span>
+                  <code className="devmenu-item-value">{audioQuality}</code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">播放模式</span>
+                  <code className="devmenu-item-value">{playMode}</code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">运行环境</span>
+                  <code className="devmenu-item-value">
+                    {isNativeApp ? 'Native (Capacitor)' : 'Web'}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">歌词行数</span>
+                  <code className="devmenu-item-value">
+                    {lyric.length} · active = {activeLyricIndex}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">错误</span>
+                  <code className="devmenu-item-value">{fatalError ?? '无'}</code>
+                </li>
+              </ul>
+
+              <div className="devmenu-actions">
+                <button
+                  type="button"
+                  className="devmenu-action"
+                  onClick={() => {
+                    try {
+                      navigator.clipboard?.writeText(
+                        JSON.stringify(
+                          {
+                            sha: build.sha,
+                            date: build.date,
+                            apiSource,
+                            playlistLength: playlist.length,
+                            currentIndex,
+                            currentSong: currentSong
+                              ? {
+                                  id: currentSong.id,
+                                  name: currentSong.name,
+                                  artists: currentSong.artists
+                                }
+                              : null,
+                            isPlaying,
+                            currentTime,
+                            duration,
+                            volume,
+                            audioQuality,
+                            playMode,
+                            isNativeApp,
+                            lyricCount: lyric.length,
+                            activeLyricIndex
+                          },
+                          null,
+                          2
+                        )
+                      );
+                      showNotice('调试信息已复制到剪贴板');
+                    } catch {
+                      showNotice('剪贴板不可用');
+                    }
+                  }}
+                >
+                  复制调试快照
+                </button>
+                <button
+                  type="button"
+                  className="devmenu-action devmenu-action-danger"
+                  onClick={() => {
+                    if (typeof window === 'undefined') return;
+                    const ok = window.confirm('确认清除本地存储？将注销登录态、API 源偏好和开发者模式解锁。');
+                    if (!ok) return;
+                    try {
+                      window.localStorage.clear();
+                    } catch {
+                      /* 忽略 */
+                    }
+                    setDevUnlocked(false);
+                    setDevMenuOpen(false);
+                    showNotice('本地存储已清除');
+                  }}
+                >
+                  清除 localStorage
+                </button>
+              </div>
             </div>
           </section>
         </div>
