@@ -643,20 +643,15 @@ body.immersive-shell {
   transform: scale(1.1);
 }
 
-/* Lyrics header */
+/* Lyrics header - 跟随歌词一起滚动,不固定在容器顶部 */
 .lyrics-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   display: flex;
   justify-content: flex-end;
-  padding: 10px 4px;
-  pointer-events: none;
+  padding: 4px 4px 8px;
 }
 
 /* Lyric translation toggle */
 .lyric-translate-toggle {
-  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
