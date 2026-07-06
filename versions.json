@@ -1,5 +1,17 @@
 {
   "schemaVersion": 1,
-  "current": "pending",
-  "versions": []
+  "current": "5395458",
+  "versions": [
+    {
+      "sha": "5395458",
+      "date": "2026-07-06T14:39:19Z",
+      "title": "重新接入关于页 dev 模式 + 翻译按钮",
+      "highlights": [
+        "修复上一版 force-push 漏带导致的 dev 菜单 / 版本号丢失",
+        "关于页连续点击 5 次 BawMusic 标题(2 秒内)解锁开发者模式,localStorage 持久化",
+        "已解锁后在关于页显示黄色 DevMenu 入口按钮,可查看运行时调试信息",
+        "翻译按钮改为跟随歌词一起滚动,不再固定在容器顶部"
+      ]
+    }
+  ]
 }
