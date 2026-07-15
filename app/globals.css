@@ -490,11 +490,11 @@ body.immersive-shell {
 
 /* 歌词面板外层：固定头部 + 可滚动歌词容器，避免 sticky 在移动端失效 */
 .lyrics-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
   flex: 1;
-  height: 100%;
   width: 100%;
 }
 
@@ -681,12 +681,15 @@ body.immersive-shell {
   transform: scale(1.1);
 }
 
-/* 翻译按钮头部：脱离滚动容器，始终固定在面板顶部 */
+/* 翻译按钮头部：absolute 钉在面板右上角，脱离滚动流与 flex 链，始终可见 */
 .lyrics-header {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   justify-content: flex-end;
   padding: 6px 20px 8px;
-  flex-shrink: 0;
 }
 
 /* Lyric translation toggle */
