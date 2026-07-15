@@ -1,7 +1,17 @@
 {
   "schemaVersion": 1,
-  "current": "5395458",
+  "current": "00a8d6e",
   "versions": [
+    {
+      "sha": "00a8d6e",
+      "date": "2026-07-15T10:40:18Z",
+      "title": "修复删除歌曲后\"秽土转生\"复现问题",
+      "highlights": [
+        "修复删除播放列表歌曲后,播放到列表边界时被 ensurePlaylistByHistory 从历史记录中重新召回的 bug",
+        "删除单曲 / 批量删除时同步清理 historyRecords,杜绝被删歌曲回流",
+        "该问题此前为概率性触发(仅在播到列表头尾时),刷新后复现,现已彻底修复"
+      ]
+    },
     {
       "sha": "5395458",
       "date": "2026-07-06T14:39:19Z",
