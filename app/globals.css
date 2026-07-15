@@ -495,20 +495,30 @@ body.immersive-shell {
   overflow-y: auto;
   text-align: center;
   padding: 10px 20px;
-  scroll-behavior: smooth;
-  scroll-snap-type: y proximity;
+  scroll-behavior: auto;
+  /* 关闭原生 snap，改由 rAF 缓动接管 */
+  scroll-snap-type: none;
+  /* 上下渐隐区加大，中间清晰带收窄，营造更强的聚焦感 */
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    black 15%,
-    black 85%,
+    rgba(0, 0, 0, 0.15) 8%,
+    rgba(0, 0, 0, 0.55) 18%,
+    black 38%,
+    black 62%,
+    rgba(0, 0, 0, 0.55) 82%,
+    rgba(0, 0, 0, 0.15) 92%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    black 15%,
-    black 85%,
+    rgba(0, 0, 0, 0.15) 8%,
+    rgba(0, 0, 0, 0.55) 18%,
+    black 38%,
+    black 62%,
+    rgba(0, 0, 0, 0.55) 82%,
+    rgba(0, 0, 0, 0.15) 92%,
     transparent 100%
   );
 }
@@ -560,7 +570,11 @@ body.immersive-shell {
   padding: 10px 20px;
   font-size: 22px;
   color: rgba(255, 255, 255, 0.4);
-  transition: transform 260ms ease, color 260ms ease, opacity 260ms ease;
+  /* 更顺滑的进出动画曲线，filter 与 transform 同步过渡 */
+  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
+              color 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
+              opacity 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
+              filter 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
   line-height: 1.36;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -585,7 +599,7 @@ body.immersive-shell {
 .lyric-line.active {
   color: var(--color-text);
   transform: scale(1.08);
-  text-shadow: 0 6px 22px rgba(255, 255, 255, 0.2);
+  text-shadow: 0 8px 28px rgba(255, 255, 255, 0.22);
 }
 
 .lyric-line.active .lyric-line-translation {
@@ -611,7 +625,7 @@ body.immersive-shell {
 
 .lyric-line.far {
   color: rgba(255, 255, 255, 0.28);
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 .lyric-line.far .lyric-line-translation {
@@ -716,22 +730,21 @@ body.immersive-shell {
               transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Blur effect for non-active lyrics */
+/* Blur effect for non-active lyrics，加大模糊梯度营造景深 */
 .lyric-line.blurred {
-  filter: blur(1.5px);
-  opacity: 0.85;
-  transition: filter 400ms ease, opacity 400ms ease;
+  filter: blur(3px);
+  opacity: 0.82;
 }
 
 .lyric-line.blurred.active,
 .lyric-line.blurred.near {
-  filter: blur(0.5px);
-  opacity: 0.92;
+  filter: blur(0);
+  opacity: 1;
 }
 
 .lyric-line.blurred.far {
-  filter: blur(2px);
-  opacity: 0.78;
+  filter: blur(5px);
+  opacity: 0.7;
 }
 
 .mobile-lyrics-bg {

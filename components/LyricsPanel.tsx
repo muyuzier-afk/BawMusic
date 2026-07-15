@@ -13,23 +13,49 @@ interface LyricsPanelProps {
 export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: LyricsPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
   const [showTranslation, setShowTranslation] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // 自定义缓动滚动，避免原生 smooth 在快速切歌时卡顿/打断
   const scrollToActive = useCallback(() => {
-    if (activeRef.current && containerRef.current) {
-      const container = containerRef.current;
-      const active = activeRef.current;
-      const containerRect = container.getBoundingClientRect();
-      const activeRect = active.getBoundingClientRect();
-      const scrollTop = active.offsetTop - containerRect.height / 2 + activeRect.height / 2;
-      container.scrollTo({ top: scrollTop, behavior: 'smooth' });
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
+    if (!activeRef.current || !containerRef.current) return;
+    const container = containerRef.current;
+    const active = activeRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    const target = active.offsetTop - containerRect.height / 2 + activeRect.height / 2;
+    const start = container.scrollTop;
+    const distance = target - start;
+    if (Math.abs(distance) < 1) return;
+    const duration = 460;
+    const startTime = performance.now();
+    // ease-out-quart，快速接近目标后缓缓停下
+    const ease = (t: number) => 1 - Math.pow(1 - t, 4);
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      container.scrollTop = start + distance * ease(progress);
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        rafRef.current = null;
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
   }, []);
 
   useEffect(() => {
     scrollToActive();
   }, [currentTime, scrollToActive]);
+
+  useEffect(() => () => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+  }, []);
 
   const handleToggleTranslation = (e: React.MouseEvent) => {
     e.stopPropagation();
