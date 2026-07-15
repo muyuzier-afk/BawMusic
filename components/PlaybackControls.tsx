@@ -113,11 +113,12 @@ export function PlaybackControls({
           </button>
         )}
 
-        {showTranslationToggle && onToggleTranslation && (
+        {onToggleTranslation && (
           <button
             className={`control-btn control-btn-translate ${showTranslation ? 'active' : ''}`}
             onClick={onToggleTranslation}
-            aria-label={showTranslation ? '隐藏翻译' : '显示翻译'}
+            disabled={!showTranslationToggle}
+            aria-label={showTranslation ? '隐藏翻译' : showTranslationToggle ? '显示翻译' : '暂无翻译'}
             type="button"
           >
             <TranslateIcon size={18} />

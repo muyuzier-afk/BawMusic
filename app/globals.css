@@ -1632,7 +1632,7 @@ body.immersive-shell {
   }
 
   .controls {
-    gap: 12px;
+    gap: 10px;
     justify-content: center;
   }
 
@@ -1644,11 +1644,8 @@ body.immersive-shell {
     display: none;
   }
 
-  /* 音质控件单独换到第二行居中，腾出第一行给播放+下载+翻译 */
+  /* 音质控件移动端收缩，跟随其他控件同一行排列 */
   .quality-control {
-    order: 99;
-    flex-basis: 100%;
-    justify-content: center;
     min-width: 0;
     padding: 6px 8px;
   }
@@ -1803,6 +1800,11 @@ body.immersive-shell {
 .control-btn-translate.active {
   background: rgba(255, 255, 255, 0.18);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn-translate:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Download quality menu */
