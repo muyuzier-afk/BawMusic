@@ -53,12 +53,15 @@ body.immersive-shell {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background-size: cover;
-  background-position: center;
-  filter: blur(var(--blur-amount)) saturate(var(--blur-saturate));
-  opacity: var(--blur-opacity);
-  transform: scale(1.2);
-  transition: background-image var(--transition-slow);
+  overflow: hidden;
+  background-color: #1a1a1a;
+}
+
+/* 无封面时（未播放）的纯色兜底 */
+.bg-layer-static {
+  position: absolute;
+  inset: 0;
+  background: #1a1a1a;
 }
 
 .bg-overlay {
@@ -1490,188 +1493,6 @@ body.immersive-shell {
 
 .devmenu-action-danger:hover {
   filter: brightness(1.15);
-}
-
-/* DevMenu 实验性功能分区标题 */
-.devmenu-section-title {
-  margin: 14px 0 6px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  color: rgba(255, 216, 100, 0.7);
-  text-transform: uppercase;
-}
-
-/* DevMenu toggle 行：label 区域可伸展，右侧为开关 */
-.devmenu-item-toggle {
-  align-items: flex-start;
-  padding: 10px 12px;
-}
-
-.devmenu-toggle-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.devmenu-item-toggle .devmenu-item-label {
-  width: auto;
-  color: rgba(255, 240, 200, 0.92);
-  font-weight: 600;
-}
-
-.devmenu-toggle-hint {
-  font-size: 11px;
-  line-height: 1.5;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-/* iOS 风格开关 */
-.devmenu-switch {
-  flex-shrink: 0;
-  width: 42px;
-  height: 24px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.08);
-  position: relative;
-  cursor: pointer;
-  padding: 0;
-  transition: background 200ms ease, border-color 200ms ease;
-}
-
-.devmenu-switch-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  transition: transform 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
-}
-
-.devmenu-switch-on {
-  background: linear-gradient(180deg, #ffd864 0%, #ffbf2a 100%);
-  border-color: rgba(180, 110, 0, 0.6);
-}
-
-.devmenu-switch-on .devmenu-switch-thumb {
-  transform: translateX(18px);
-}
-
-/* AMLL 歌词容器：填满父容器（父级为 flex column），让 AMLL 自行接管滚动/布局 */
-.amll-container {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  overflow: hidden;
-}
-
-/* ===== AMLL 全屏播放器（amllEnabled 时整页替换 player-shell） ===== */
-.amll-player {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.amll-player-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-.amll-player-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
-  pointer-events: none;
-}
-
-.amll-player-lyrics {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 220px;
-  z-index: 2;
-}
-
-.amll-player-bottom {
-  position: relative;
-  z-index: 3;
-  margin-top: auto;
-  padding: 16px 32px calc(24px + env(safe-area-inset-bottom, 0px));
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  max-width: 720px;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.amll-player-songinfo {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.amll-player-title {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.3px;
-  color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-}
-
-.amll-player-artist {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
-}
-
-.amll-player-loading {
-  text-align: center;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.amll-player-notice {
-  text-align: center;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* AMLL 全屏播放器：控制栏文字/图标在深色流体背景上用白色 */
-.amll-player .progress-time,
-.amll-player .controls,
-.amll-player .quality-control,
-.amll-player .volume-control {
-  color: #fff;
-}
-
-@media (max-width: 768px) {
-  .amll-player-lyrics {
-    bottom: 200px;
-  }
-  .amll-player-bottom {
-    padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
-    gap: 10px;
-  }
-  .amll-player-title {
-    font-size: 18px;
-  }
 }
 
 /* Import dialog JSON section */
