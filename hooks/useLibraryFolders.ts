@@ -56,6 +56,8 @@ export interface UseLibraryFoldersReturn {
   removeSongFromAllFolders: (songId: number) => void;
   /** 清空所有文件夹（清空音乐库时调用） */
   clearAllFolders: () => void;
+  /** 文件夹内重排序：把 songId 移到 targetId 之前/之后 */
+  reorderInFolder: (folderId: string, songId: number, targetId: number, position: 'before' | 'after') => void;
   /**
    * 把一首歌从 fromFolderId 移到 toFolderId。
    * fromFolderId=null 表示原为散落歌曲；toFolderId=null 表示移出文件夹变散落。
@@ -142,6 +144,20 @@ export function useLibraryFolders(): UseLibraryFoldersReturn {
     setFolders([]);
   }, []);
 
+  const reorderInFolder = useCallback((folderId: string, songId: number, targetId: number, position: 'before' | 'after') => {
+    if (songId === targetId) return;
+    setFolders((prev) => prev.map((f) => {
+      if (f.id !== folderId) return f;
+      const ids = f.songIds.filter((sid) => sid !== songId);
+      const targetIdx = ids.indexOf(targetId);
+      if (targetIdx < 0) return f;
+      const insertAt = position === 'before' ? targetIdx : targetIdx + 1;
+      const next = [...ids];
+      next.splice(insertAt, 0, songId);
+      return { ...f, songIds: next };
+    }));
+  }, []);
+
   const moveSongToFolder = useCallback((fromFolderId: string | null, toFolderId: string | null, songId: number) => {
     setFolders((prev) => {
       let next = prev;
@@ -177,6 +193,7 @@ export function useLibraryFolders(): UseLibraryFoldersReturn {
     removeSongFromFolder,
     removeSongFromAllFolders,
     clearAllFolders,
+    reorderInFolder,
     moveSongToFolder
   };
 }

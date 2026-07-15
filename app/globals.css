@@ -2188,7 +2188,8 @@ body.immersive-shell {
   flex-direction: column;
   gap: 8px;
   cursor: pointer;
-  transition: transform var(--transition-fast);
+  /* hover 与重排序(FLIP)共用过渡，时长稍长让位置切换更顺滑 */
+  transition: transform 280ms cubic-bezier(0.2, 0.7, 0.3, 1);
   /* 允许垂直滚动，拖拽时由 JS 锁定 body overflow；禁止选中/长按菜单 */
   touch-action: pan-y;
   -webkit-user-select: none;

@@ -76,6 +76,7 @@ export default function MusicPlayer() {
     removeSongFromFolder,
     removeSongFromAllFolders,
     clearAllFolders,
+    reorderInFolder,
     moveSongToFolder
   } = useLibraryFolders();
 
@@ -558,6 +559,7 @@ export default function MusicPlayer() {
                   onAddSongToFolder={addSongToFolder}
                   onRemoveSongFromFolder={removeSongFromFolder}
                   onMoveSongToFolder={moveSongToFolder}
+                  onReorderInFolder={reorderInFolder}
                 />
               </div>
             </div>

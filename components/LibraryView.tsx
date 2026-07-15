@@ -20,6 +20,7 @@ interface LibraryViewProps {
   onAddSongToFolder: (folderId: string, songId: number) => void;
   onRemoveSongFromFolder: (folderId: string, songId: number) => void;
   onMoveSongToFolder: (fromFolderId: string | null, toFolderId: string | null, songId: number) => void;
+  onReorderInFolder: (folderId: string, songId: number, targetId: number, position: 'before' | 'after') => void;
 }
 
 const LONG_PRESS_MS = 320;
@@ -50,7 +51,7 @@ interface ActiveDrag {
 }
 
 type DropTarget =
-  | { kind: 'song'; songId: number }
+  | { kind: 'song'; songId: number; position: 'before' | 'after' }
   | { kind: 'folder'; folderId: string }
   | { kind: 'outside' }
   | null;
@@ -81,7 +82,8 @@ export function LibraryView({
   onDeleteFolder,
   onAddSongToFolder,
   onRemoveSongFromFolder,
-  onMoveSongToFolder
+  onMoveSongToFolder,
+  onReorderInFolder
 }: LibraryViewProps) {
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
@@ -150,7 +152,13 @@ export function LibraryView({
     if (songCard) {
       const sid = Number(songCard.dataset.dropSong);
       if (activeRef.current && sid && sid !== activeRef.current.songId) {
-        return { kind: 'song', songId: sid };
+        // 判定落点相对目标卡片的位置（前/后），供文件夹内重排序使用
+        const rect = songCard.getBoundingClientRect();
+        const horizontal = rect.width >= rect.height;
+        const position: 'before' | 'after' = horizontal
+          ? (x < rect.left + rect.width / 2 ? 'before' : 'after')
+          : (y < rect.top + rect.height / 2 ? 'before' : 'after');
+        return { kind: 'song', songId: sid, position };
       }
     }
     return { kind: 'outside' };
@@ -220,11 +228,23 @@ export function LibraryView({
       wasDraggingRef.current = true;
       const target = detectDropTarget(e.clientX, e.clientY);
       active.card.classList.remove('library-card-dragging');
+
+      // 拖拽落定前，记录当前网格内所有卡片位置（供 FLIP 动画）
+      const grid = active.card.closest('.library-grid');
+      const beforeRects = new Map<number, DOMRect>();
+      if (grid) {
+        grid.querySelectorAll<HTMLElement>('[data-drop-song]').forEach((el) => {
+          const sid = Number(el.dataset.dropSong);
+          if (sid) beforeRects.set(sid, el.getBoundingClientRect());
+        });
+      }
+
       if (target?.kind === 'song') {
         const targetFolder = findFolderOf(folders, target.songId);
         const dragFolder = active.fromFolderId;
         if (targetFolder === dragFolder && dragFolder !== null) {
-          // 已在同文件夹，忽略
+          // 同文件夹内重排序
+          onReorderInFolder(dragFolder, active.songId, target.songId, target.position);
         } else if (targetFolder) {
           onAddSongToFolder(targetFolder, active.songId);
         } else {
@@ -237,7 +257,37 @@ export function LibraryView({
         // 从文件夹拖到空白 → 移出文件夹
         onMoveSongToFolder(active.fromFolderId, null, active.songId);
       }
+
       clearDrag();
+
+      // FLIP 动画：下一帧对比新旧位置，用 transform 平滑过渡
+      if (grid && beforeRects.size > 0) {
+        requestAnimationFrame(() => {
+          grid.querySelectorAll<HTMLElement>('[data-drop-song]').forEach((el) => {
+            const sid = Number(el.dataset.dropSong);
+            const before = beforeRects.get(sid);
+            if (!before) return;
+            const after = el.getBoundingClientRect();
+            const dx = before.left - after.left;
+            const dy = before.top - after.top;
+            if (dx === 0 && dy === 0) return;
+            el.style.transition = 'none';
+            el.style.transform = `translate(${dx}px, ${dy}px)`;
+            el.style.zIndex = '1';
+            // 强制 reflow 后启用过渡
+            void el.offsetWidth;
+            el.style.transition = '';
+            el.style.transform = '';
+            const cleanup = () => {
+              el.style.zIndex = '';
+              el.removeEventListener('transitionend', cleanup);
+            };
+            el.addEventListener('transitionend', cleanup);
+            // 兜底清理
+            setTimeout(cleanup, 400);
+          });
+        });
+      }
       return;
     }
     // 未进入拖拽态：清理 pending
@@ -246,7 +296,7 @@ export function LibraryView({
       longPressTimer.current = null;
     }
     pendingRef.current = null;
-  }, [detectDropTarget, folders, onAddSongToFolder, onCreateFolder, onMoveSongToFolder, clearDrag]);
+  }, [detectDropTarget, folders, onAddSongToFolder, onCreateFolder, onMoveSongToFolder, onReorderInFolder, clearDrag]);
 
   const handleCardClick = useCallback((song: Song) => {
     if (wasDraggingRef.current) {
