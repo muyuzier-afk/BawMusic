@@ -121,6 +121,13 @@ export function LibraryView({
 
   useEffect(() => () => clearDrag(), [clearDrag]);
 
+  // 阻止库内长按弹出的浏览器原生菜单（保存图片等）
+  useEffect(() => {
+    const prevent = (e: Event) => e.preventDefault();
+    document.addEventListener('contextmenu', prevent);
+    return () => document.removeEventListener('contextmenu', prevent);
+  }, []);
+
   // 文件夹被删除时，若正在浏览它则退出
   useEffect(() => {
     if (openFolderId && !folders.some((f) => f.id === openFolderId)) {
@@ -298,6 +305,7 @@ export function LibraryView({
             src={buildCoverUrl(s.picUrl)}
             alt=""
             loading="lazy"
+            draggable={false}
             onError={(ev) => { if (ev.currentTarget.src !== PLACEHOLDER_COVER) ev.currentTarget.src = PLACEHOLDER_COVER; }}
           />
         ))}
@@ -323,6 +331,7 @@ export function LibraryView({
             src={buildCoverUrl(song.picUrl)}
             alt={song.name}
             loading="lazy"
+            draggable={false}
             onError={(event) => {
               const target = event.currentTarget;
               if (target.src !== PLACEHOLDER_COVER) target.src = PLACEHOLDER_COVER;
