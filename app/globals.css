@@ -1563,20 +1563,13 @@ body.immersive-shell {
   transform: translateX(18px);
 }
 
-/* AMLL 歌词容器：填满父容器，让 AMLL 自行接管滚动/布局 */
+/* AMLL 歌词容器：填满父容器（父级为 flex column），让 AMLL 自行接管滚动/布局 */
 .amll-container {
-  width: 100%;
-  height: 100%;
+  position: relative;
+  flex: 1;
   min-height: 0;
+  width: 100%;
   overflow: hidden;
-}
-
-.amll-container-desktop {
-  height: 100%;
-}
-
-.amll-container-mobile {
-  height: 100%;
 }
 
 /* Import dialog JSON section */

@@ -528,7 +528,7 @@ export default function MusicPlayer() {
               >
               <div className="mobile-lyrics-bg" aria-hidden={!mobileLyricsOpen}>
                 {amllEnabled ? (
-                  <AmllLyrics lyrics={lyric} currentTime={currentTime} variant="mobile" />
+                  <AmllLyrics lyrics={lyric} currentTime={currentTime} isPlaying={isPlaying} variant="mobile" />
                 ) : (
                   <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
                 )}
@@ -588,7 +588,7 @@ export default function MusicPlayer() {
 
               <aside className="desktop-lyrics-pane">
                 {amllEnabled ? (
-                  <AmllLyrics lyrics={lyric} currentTime={currentTime} variant="desktop" />
+                  <AmllLyrics lyrics={lyric} currentTime={currentTime} isPlaying={isPlaying} variant="desktop" />
                 ) : (
                   <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" />
                 )}
