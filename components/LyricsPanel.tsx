@@ -73,10 +73,13 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
 
   if (lyrics.length === 0) {
     return (
-      <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
-        <div className="lyric-spacer" aria-hidden="true" />
-        <div className="lyric-line">暂无歌词</div>
-        <div className="lyric-spacer" aria-hidden="true" />
+      <div className={`lyrics-panel lyrics-panel-${variant}`}>
+        <div className="lyrics-header" />
+        <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
+          <div className="lyric-spacer" aria-hidden="true" />
+          <div className="lyric-line">暂无歌词</div>
+          <div className="lyric-spacer" aria-hidden="true" />
+        </div>
       </div>
     );
   }
@@ -90,7 +93,7 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
   }
 
   return (
-    <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
+    <div className={`lyrics-panel lyrics-panel-${variant}`}>
       <div className="lyrics-header">
         {hasTranslation && (
           <button
@@ -104,31 +107,33 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default' }: Lyrics
           </button>
         )}
       </div>
-      <div className="lyric-spacer" aria-hidden="true" />
-      {lyrics.map((line, index) => {
-        const isActive = index === currentIndex;
-        const isPassed = index < currentIndex;
-        const relativeIndex = currentIndex === -1 ? 0 : index - currentIndex;
-        const distance = currentIndex === -1 ? 99 : Math.abs(index - currentIndex);
-        const isNear = distance === 1;
-        const isFar = distance >= 2;
-        const positionClass = relativeIndex < 0 ? 'before' : relativeIndex > 0 ? 'after' : '';
-        const isBlurred = !isActive && distance >= 1;
+      <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
+        <div className="lyric-spacer" aria-hidden="true" />
+        {lyrics.map((line, index) => {
+          const isActive = index === currentIndex;
+          const isPassed = index < currentIndex;
+          const relativeIndex = currentIndex === -1 ? 0 : index - currentIndex;
+          const distance = currentIndex === -1 ? 99 : Math.abs(index - currentIndex);
+          const isNear = distance === 1;
+          const isFar = distance >= 2;
+          const positionClass = relativeIndex < 0 ? 'before' : relativeIndex > 0 ? 'after' : '';
+          const isBlurred = !isActive && distance >= 1;
 
-        return (
-          <div
-            key={index}
-            ref={isActive ? activeRef : null}
-            className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''} ${isNear ? 'near' : ''} ${isFar ? 'far' : ''} ${positionClass} ${isBlurred ? 'blurred' : ''}`}
-          >
-            <div className="lyric-line-main">{line.text}</div>
-            {line.translation && (
-              <div className={`lyric-line-translation ${showTranslation ? 'show' : 'hide'}`}>{line.translation}</div>
-            )}
-          </div>
-        );
-      })}
-      <div className="lyric-spacer" aria-hidden="true" />
+          return (
+            <div
+              key={index}
+              ref={isActive ? activeRef : null}
+              className={`lyric-line ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''} ${isNear ? 'near' : ''} ${isFar ? 'far' : ''} ${positionClass} ${isBlurred ? 'blurred' : ''}`}
+            >
+              <div className="lyric-line-main">{line.text}</div>
+              {line.translation && (
+                <div className={`lyric-line-translation ${showTranslation ? 'show' : 'hide'}`}>{line.translation}</div>
+              )}
+            </div>
+          );
+        })}
+        <div className="lyric-spacer" aria-hidden="true" />
+      </div>
     </div>
   );
 }
