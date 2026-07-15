@@ -697,10 +697,16 @@ export function usePlayer(): UsePlayerReturn {
   const removePlaylistItem = useCallback((index: number) => {
     if (index < 0 || index >= playlist.length) return;
 
+    const removedSong = playlist[index];
     const nextPlaylist = playlist.filter((_, itemIndex) => itemIndex !== index);
     const removingCurrent = index === currentIndex;
 
     setPlaylist(nextPlaylist);
+
+    // 同步清理历史记录，避免删除的歌曲通过 ensurePlaylistByHistory "秽土转生"回到列表
+    if (removedSong) {
+      setHistoryRecords(prev => prev.filter(song => song.id !== removedSong.id));
+    }
 
     if (removingCurrent) {
       if (nextPlaylist.length === 0) {
@@ -740,6 +746,9 @@ export function usePlayer(): UsePlayerReturn {
     const sortedIndices = Array.from(new Set(indices)).sort((a, b) => b - a);
     if (sortedIndices.some(i => i < 0 || i >= playlist.length)) return;
 
+    const removedIds = new Set(
+      sortedIndices.map(i => playlist[i]?.id).filter((id): id is number => typeof id === 'number')
+    );
     let nextPlaylist = [...playlist];
     let nextCurrentIndex = currentIndex;
 
@@ -755,6 +764,11 @@ export function usePlayer(): UsePlayerReturn {
     const removingCurrent = currentIndex >= 0 && indices.includes(currentIndex);
 
     setPlaylist(nextPlaylist);
+
+    // 同步清理历史记录，避免删除的歌曲通过 ensurePlaylistByHistory "秽土转生"回到列表
+    if (removedIds.size > 0) {
+      setHistoryRecords(prev => prev.filter(song => !removedIds.has(song.id)));
+    }
 
     if (removingCurrent) {
       if (nextPlaylist.length === 0) {
