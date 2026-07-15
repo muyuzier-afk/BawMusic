@@ -6,6 +6,7 @@ import { usePlayer } from '@/hooks/usePlayer';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
+import { AmllLyrics } from '@/components/AmllLyrics';
 import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls';
 import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { DownloadMenu } from '@/components/DownloadMenu';
@@ -86,14 +87,17 @@ export default function MusicPlayer() {
   const [devUnlocked, setDevUnlocked] = useState(false);
   const [devMenuOpen, setDevMenuOpen] = useState(false);
   const [devHydrated, setDevHydrated] = useState(false);
+  // AMLL Styles 开关：开启后刷新页面生效，避免运行时切换带来的组件卸载/重挂复杂度。
+  const [amllEnabled, setAmllEnabled] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
 
-  // 从 localStorage 读取开发者模式解锁状态（仅客户端）
+  // 从 localStorage 读取开发者模式解锁状态与 AMLL 开关（仅客户端）
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const stored = window.localStorage.getItem('bawmusic:dev-unlocked');
       if (stored === '1') setDevUnlocked(true);
+      if (window.localStorage.getItem('bawmusic:amll-enabled') === '1') setAmllEnabled(true);
     } catch {
       /* 忽略：隐私模式/Storage 不可用 */
     }
@@ -523,7 +527,11 @@ export default function MusicPlayer() {
                 onClick={handlePlayPageClick}
               >
               <div className="mobile-lyrics-bg" aria-hidden={!mobileLyricsOpen}>
-                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
+                {amllEnabled ? (
+                  <AmllLyrics lyrics={lyric} currentTime={currentTime} variant="mobile" />
+                ) : (
+                  <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
+                )}
               </div>
 
               {isLoading && (
@@ -579,7 +587,11 @@ export default function MusicPlayer() {
               </div>
 
               <aside className="desktop-lyrics-pane">
-                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" />
+                {amllEnabled ? (
+                  <AmllLyrics lyrics={lyric} currentTime={currentTime} variant="desktop" />
+                ) : (
+                  <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" />
+                )}
               </aside>
             </div>
           )}
@@ -916,6 +928,36 @@ export default function MusicPlayer() {
                 <li className="devmenu-item">
                   <span className="devmenu-item-label">错误</span>
                   <code className="devmenu-item-value">{fatalError ?? '无'}</code>
+                </li>
+              </ul>
+
+              <div className="devmenu-section-title">实验性功能</div>
+              <ul className="devmenu-list">
+                <li className="devmenu-item devmenu-item-toggle">
+                  <div className="devmenu-toggle-text">
+                    <span className="devmenu-item-label">AMLL Styles</span>
+                    <span className="devmenu-toggle-hint">
+                      使用 Apple Music 风格歌词渲染（{amllEnabled ? '已开启' : '已关闭'}，开启后刷新页面生效）
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={amllEnabled}
+                    className={`devmenu-switch${amllEnabled ? ' devmenu-switch-on' : ''}`}
+                    onClick={() => {
+                      const next = !amllEnabled;
+                      setAmllEnabled(next);
+                      try {
+                        window.localStorage.setItem('bawmusic:amll-enabled', next ? '1' : '0');
+                      } catch {
+                        /* 忽略 */
+                      }
+                      showNotice(next ? 'AMLL Styles 已开启，刷新页面后生效' : 'AMLL Styles 已关闭，刷新页面后生效');
+                    }}
+                  >
+                    <span className="devmenu-switch-thumb" />
+                  </button>
                 </li>
               </ul>
 

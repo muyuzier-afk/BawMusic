@@ -108,6 +108,7 @@ scripts/patch-capacitor-java17.js   postinstall 钩子
 - [chksz.top](https://api.chksz.top/) — MAIN API 源
 - [t8.php](https://dev.ciallo.pp.ua/music/t8.php) 和 meting — BACKUP API 源
 - [Linux.do](https://linux.do/) 社区的反馈
+- [AMLL (Apple Music-like Lyrics)](https://github.com/amll-dev/applemusic-like-lyrics) — Apple Music 风格歌词渲染组件，DevMenu 中开启“AMLL Styles”后使用（基于 `@applemusic-like-lyrics/react`）
 
 ## License
 
