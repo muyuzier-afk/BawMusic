@@ -27,15 +27,15 @@ const LONG_PRESS_MS = 320;
 const MOVE_CANCEL_PX = 10;
 
 interface DragGhost {
-  song: Song;
+  songs: Song[];
   x: number;
   y: number;
 }
 
 interface PendingDrag {
-  songId: number;
+  songIds: number[];
   fromFolderId: string | null;
-  song: Song;
+  songs: Song[];
   pointerId: number;
   startX: number;
   startY: number;
@@ -43,9 +43,9 @@ interface PendingDrag {
 }
 
 interface ActiveDrag {
-  songId: number;
+  songIds: number[];
   fromFolderId: string | null;
-  song: Song;
+  songs: Song[];
   pointerId: number;
   card: HTMLElement;
 }
@@ -68,6 +68,7 @@ function buildCoverUrl(picUrl: string | undefined): string {
 /**
  * 音乐库视图：CD 网格 + 文件夹。
  * 长按一首歌拖到另一首歌上 → 自动创建文件夹；拖到文件夹上 → 加入该文件夹。
+ * 多选模式下可选中多首，长按拖拽作为整体批量加入文件夹。
  */
 export function LibraryView({
   library,
@@ -88,6 +89,10 @@ export function LibraryView({
   const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+
+  // 多选模式
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
 
   // 拖拽状态
   const [ghost, setGhost] = useState<DragGhost | null>(null);
@@ -144,15 +149,18 @@ export function LibraryView({
     const folderCard = el.closest('[data-drop-folder]') as HTMLElement | null;
     if (folderCard) {
       const fid = folderCard.dataset.dropFolder;
-      if (fid && activeRef.current && !folders.find((f) => f.id === fid)?.songIds.includes(activeRef.current.songId)) {
-        return { kind: 'folder', folderId: fid };
+      if (fid && activeRef.current) {
+        // 落点文件夹不能已包含所有拖拽歌曲
+        const folder = folders.find((f) => f.id === fid);
+        const allInside = folder && activeRef.current.songIds.every((sid) => folder.songIds.includes(sid));
+        if (!allInside) return { kind: 'folder', folderId: fid };
       }
     }
     const songCard = el.closest('[data-drop-song]') as HTMLElement | null;
     if (songCard) {
       const sid = Number(songCard.dataset.dropSong);
-      if (activeRef.current && sid && sid !== activeRef.current.songId) {
-        // 判定落点相对目标卡片的位置（前/后），供文件夹内重排序使用
+      if (activeRef.current && sid && !activeRef.current.songIds.includes(sid)) {
+        // 单首拖拽才参与重排序判定；多首拖到歌上视为创建/加入文件夹
         const rect = songCard.getBoundingClientRect();
         const horizontal = rect.width >= rect.height;
         const position: 'before' | 'after' = horizontal
@@ -164,34 +172,32 @@ export function LibraryView({
     return { kind: 'outside' };
   }, [folders]);
 
-  const handlePointerDown = useCallback((song: Song, fromFolderId: string | null, e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 && e.pointerType === 'mouse') return;
-    const card = e.currentTarget;
+  // 开启拖拽：记录待拖拽的歌曲集合
+  const startDragFor = useCallback((songIds: number[], fromFolderId: string | null, songs: Song[], pointerId: number, startX: number, startY: number, card: HTMLElement) => {
     pendingRef.current = {
-      songId: song.id,
+      songIds,
       fromFolderId,
-      song,
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
+      songs,
+      pointerId,
+      startX,
+      startY,
       card
     };
-    try { card.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    try { card.setPointerCapture(pointerId); } catch { /* ignore */ }
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     longPressTimer.current = setTimeout(() => {
       const p = pendingRef.current;
       if (!p) return;
       activeRef.current = {
-        songId: p.songId,
+        songIds: p.songIds,
         fromFolderId: p.fromFolderId,
-        song: p.song,
+        songs: p.songs,
         pointerId: p.pointerId,
         card: p.card
       };
       pendingRef.current = null;
-      setGhost({ song: p.song, x: p.startX, y: p.startY });
+      setGhost({ songs: p.songs, x: p.startX, y: p.startY });
       p.card.classList.add('library-card-dragging');
-      // 锁定页面滚动，避免拖拽时移动端列表跟着滚
       try {
         prevBodyOverflow.current = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
@@ -199,6 +205,29 @@ export function LibraryView({
       } catch { /* ignore */ }
     }, LONG_PRESS_MS);
   }, []);
+
+  const handlePointerDown = useCallback((song: Song, fromFolderId: string | null, e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    const card = e.currentTarget;
+
+    if (multiSelect) {
+      // 多选模式：长按拖拽当前选中的全部歌曲
+      let ids = new Set(selectedIds);
+      if (!ids.has(song.id)) {
+        // 长按未选中的歌：先选中它，再拖拽全部
+        ids = new Set(ids);
+        ids.add(song.id);
+        setSelectedIds(ids);
+      }
+      if (ids.size === 0) return;
+      const songs = library.filter((s) => ids.has(s.id));
+      startDragFor(Array.from(ids), fromFolderId, songs, e.pointerId, e.clientX, e.clientY, card);
+      return;
+    }
+
+    // 单选模式：拖拽单首
+    startDragFor([song.id], fromFolderId, [song], e.pointerId, e.clientX, e.clientY, card);
+  }, [multiSelect, selectedIds, library, startDragFor]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const p = pendingRef.current;
@@ -217,7 +246,7 @@ export function LibraryView({
     }
     const active = activeRef.current;
     if (active && active.pointerId === e.pointerId) {
-      setGhost({ song: active.song, x: e.clientX, y: e.clientY });
+      setGhost({ songs: active.songs, x: e.clientX, y: e.clientY });
       setDropTarget(detectDropTarget(e.clientX, e.clientY));
     }
   }, [detectDropTarget]);
@@ -239,28 +268,31 @@ export function LibraryView({
         });
       }
 
+      const isMulti = active.songIds.length > 1;
+
       if (target?.kind === 'song') {
         const targetFolder = findFolderOf(folders, target.songId);
         const dragFolder = active.fromFolderId;
-        if (targetFolder === dragFolder && dragFolder !== null) {
-          // 同文件夹内重排序
-          onReorderInFolder(dragFolder, active.songId, target.songId, target.position);
+        if (!isMulti && targetFolder === dragFolder && dragFolder !== null) {
+          // 单首 + 同文件夹 → 重排序
+          onReorderInFolder(dragFolder, active.songIds[0], target.songId, target.position);
         } else if (targetFolder) {
-          onAddSongToFolder(targetFolder, active.songId);
+          // 目标在文件夹 → 批量加入该文件夹
+          for (const sid of active.songIds) onAddSongToFolder(targetFolder, sid);
         } else {
-          // 两首散落歌 → 创建新文件夹
-          onCreateFolder([active.songId, target.songId]);
+          // 目标散落 → 创建文件夹包含全部拖拽歌 + 目标歌
+          onCreateFolder([...active.songIds, target.songId]);
         }
       } else if (target?.kind === 'folder') {
-        onAddSongToFolder(target.folderId, active.songId);
+        for (const sid of active.songIds) onAddSongToFolder(target.folderId, sid);
       } else if (target?.kind === 'outside' && active.fromFolderId !== null) {
-        // 从文件夹拖到空白 → 移出文件夹
-        onMoveSongToFolder(active.fromFolderId, null, active.songId);
+        // 从文件夹拖到空白 → 批量移出
+        for (const sid of active.songIds) onMoveSongToFolder(active.fromFolderId, null, sid);
       }
 
       clearDrag();
 
-      // FLIP 动画：下一帧对比新旧位置，用 transform 平滑过渡
+      // FLIP 动画
       if (grid && beforeRects.size > 0) {
         requestAnimationFrame(() => {
           grid.querySelectorAll<HTMLElement>('[data-drop-song]').forEach((el) => {
@@ -274,7 +306,6 @@ export function LibraryView({
             el.style.transition = 'none';
             el.style.transform = `translate(${dx}px, ${dy}px)`;
             el.style.zIndex = '1';
-            // 强制 reflow 后启用过渡
             void el.offsetWidth;
             el.style.transition = '';
             el.style.transform = '';
@@ -283,14 +314,12 @@ export function LibraryView({
               el.removeEventListener('transitionend', cleanup);
             };
             el.addEventListener('transitionend', cleanup);
-            // 兜底清理
             setTimeout(cleanup, 400);
           });
         });
       }
       return;
     }
-    // 未进入拖拽态：清理 pending
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
@@ -303,8 +332,30 @@ export function LibraryView({
       wasDraggingRef.current = false;
       return;
     }
+    if (multiSelect) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(song.id)) next.delete(song.id);
+        else next.add(song.id);
+        return next;
+      });
+      return;
+    }
     onPlay(song);
-  }, [onPlay]);
+  }, [multiSelect, onPlay]);
+
+  // 多选操作
+  const exitMultiSelect = useCallback(() => {
+    setMultiSelect(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const selectAll = useCallback(() => {
+    const visible = openFolderId
+      ? (folders.find((f) => f.id === openFolderId)?.songIds.map((id) => library.find((s) => s.id === id)).filter(Boolean) as Song[] ?? [])
+      : library.filter((s) => !folders.some((f) => f.songIds.includes(s.id)));
+    setSelectedIds(new Set(visible.map((s) => s.id)));
+  }, [openFolderId, folders, library]);
 
   const startRename = useCallback((folder: LibraryFolder) => {
     setEditingFolderId(folder.id);
@@ -366,9 +417,10 @@ export function LibraryView({
   // 单张歌曲 CD 卡片
   const renderSongCard = useCallback((song: Song, fromFolderId: string | null, opts?: { onRemoveLabel?: string; onRemoveAction?: () => void }) => {
     const isDropSong = dropTarget?.kind === 'song' && dropTarget.songId === song.id;
+    const isSelected = selectedIds.has(song.id);
     return (
       <div
-        className={`library-card${isDropSong ? ' library-card-drop-hover' : ''}`}
+        className={`library-card${isDropSong ? ' library-card-drop-hover' : ''}${isSelected ? ' library-card-selected' : ''}`}
         data-drop-song={song.id}
         onClick={() => handleCardClick(song)}
         onPointerDown={(e) => handlePointerDown(song, fromFolderId, e)}
@@ -392,28 +444,36 @@ export function LibraryView({
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <button
-            className="library-card-remove"
-            type="button"
-            aria-label={opts?.onRemoveLabel || '从音乐库移除'}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (opts?.onRemoveAction) opts.onRemoveAction();
-              else onRemove(song.id);
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {opts?.onRemoveAction
-                ? <path d="M9 18l6-6-6-6" />
-                : <path d="M18 6L6 18M6 6l12 12" />}
+          {/* 多选角标 */}
+          <div className={`library-card-check${isSelected ? ' library-card-check-on' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
             </svg>
-          </button>
+          </div>
+          {!multiSelect && (
+            <button
+              className="library-card-remove"
+              type="button"
+              aria-label={opts?.onRemoveLabel || '从音乐库移除'}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (opts?.onRemoveAction) opts.onRemoveAction();
+                else onRemove(song.id);
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {opts?.onRemoveAction
+                  ? <path d="M9 18l6-6-6-6" />
+                  : <path d="M18 6L6 18M6 6l12 12" />}
+              </svg>
+            </button>
+          )}
         </div>
         <div className="library-card-name">{song.name}</div>
         <div className="library-card-artist">{song.artists}</div>
       </div>
     );
-  }, [dropTarget, handleCardClick, handlePointerDown, handlePointerMove, handlePointerUp, onRemove]);
+  }, [dropTarget, selectedIds, multiSelect, handleCardClick, handlePointerDown, handlePointerMove, handlePointerUp, onRemove]);
 
   // 空状态
   if (library.length === 0 && folders.length === 0) {
@@ -429,6 +489,17 @@ export function LibraryView({
     );
   }
 
+  // 多选操作栏
+  const renderMultiSelectBar = (totalVisible: number) => (
+    <div className="library-multiselect-bar">
+      <span className="library-multiselect-count">已选 {selectedIds.size} / {totalVisible}</span>
+      <div className="library-header-actions">
+        <button className="library-action" onClick={selectAll} disabled={selectedIds.size === totalVisible}>全选</button>
+        <button className="library-action" onClick={exitMultiSelect}>完成</button>
+      </div>
+    </div>
+  );
+
   // 文件夹内部视图
   if (openFolderId) {
     const folder = folders.find((f) => f.id === openFolderId);
@@ -437,7 +508,7 @@ export function LibraryView({
       const isEditing = editingFolderId === folder.id;
       const isDropFolder = dropTarget?.kind === 'folder' && dropTarget.folderId === folder.id;
       return (
-        <div className="library-view">
+        <div className={`library-view${multiSelect ? ' multiselect-on' : ''}`}>
           <div className="library-folder-bar">
             <button className="library-folder-back" type="button" onClick={() => setOpenFolderId(null)}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -473,10 +544,23 @@ export function LibraryView({
               {songs.length > 0 && (
                 <button className="library-action" onClick={() => onPlay(songs[0])}>播放全部</button>
               )}
+              <button
+                className={`library-action${multiSelect ? ' library-action-active' : ''}`}
+                onClick={() => { if (multiSelect) exitMultiSelect(); else setMultiSelect(true); }}
+              >
+                {multiSelect ? '取消多选' : '多选'}
+              </button>
               <button className="library-action" onClick={() => startRename(folder)}>重命名</button>
               <button className="library-action library-action-danger" onClick={() => handleDeleteFolder(folder)}>删除文件夹</button>
             </div>
           </div>
+
+          {multiSelect && renderMultiSelectBar(songs.length)}
+          {!multiSelect && (
+            <div className="library-hint">
+              提示：长按一首歌拖到另一首歌上可调整顺序，拖到其它文件夹上可加入
+            </div>
+          )}
 
           {songs.length === 0 ? (
             <div className="library-empty">
@@ -498,7 +582,7 @@ export function LibraryView({
 
   // 根视图
   return (
-    <div className="library-view">
+    <div className={`library-view${multiSelect ? ' multiselect-on' : ''}`}>
       <div className="library-header">
         <div className="library-header-info">
           <div className="library-header-title">音乐库</div>
@@ -508,14 +592,25 @@ export function LibraryView({
         </div>
         <div className="library-header-actions">
           <button className="library-action" onClick={onPlayAll} disabled={library.length === 0}>播放全部</button>
+          <button
+            className={`library-action${multiSelect ? ' library-action-active' : ''}`}
+            onClick={() => { if (multiSelect) exitMultiSelect(); else setMultiSelect(true); }}
+          >
+            {multiSelect ? '取消多选' : '多选'}
+          </button>
           <button className="library-action" onClick={onImport}>导入歌单</button>
           <button className="library-action library-action-danger" onClick={onClear} disabled={library.length === 0}>清空</button>
         </div>
       </div>
 
-      <div className="library-hint">
-        提示：长按一首歌拖到另一首歌上可创建文件夹，拖到文件夹上可加入该文件夹
-      </div>
+      {multiSelect
+        ? renderMultiSelectBar(looseSongs.length)
+        : (
+          <div className="library-hint">
+            提示：长按一首歌拖到另一首歌上可创建文件夹，拖到文件夹上可加入该文件夹；多选后长按可批量拖入文件夹
+          </div>
+        )
+      }
 
       <div className="library-grid">
         {folders.map((folder) => {
@@ -550,14 +645,25 @@ export function LibraryView({
         {looseSongs.map((song) => renderSongCard(song, null))}
       </div>
 
-      {/* 拖拽 ghost */}
+      {/* 拖拽 ghost：多选时堆叠显示 */}
       {ghost && (
         <div
-          className="library-drag-ghost"
+          className={`library-drag-ghost${ghost.songs.length > 1 ? ' library-drag-ghost-multi' : ''}`}
           style={{ left: ghost.x, top: ghost.y }}
           aria-hidden
         >
-          <img src={buildCoverUrl(ghost.song.picUrl)} alt="" />
+          {ghost.songs.slice(0, 3).map((s, i) => (
+            <img
+              key={`${s.id}-${i}`}
+              src={buildCoverUrl(s.picUrl)}
+              alt=""
+              className="library-drag-ghost-img"
+              style={{ ['--ghost-i' as string]: i }}
+            />
+          ))}
+          {ghost.songs.length > 1 && (
+            <span className="library-drag-ghost-count">{ghost.songs.length}</span>
+          )}
         </div>
       )}
     </div>

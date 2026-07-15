@@ -2505,6 +2505,117 @@ body.immersive-shell {
   display: block;
 }
 
+/* 多选堆叠 ghost */
+.library-drag-ghost-multi {
+  width: 84px;
+  height: 84px;
+  overflow: visible;
+}
+
+.library-drag-ghost-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  /* 按 --ghost-i 错位堆叠 */
+  transform: translate(calc(var(--ghost-i, 0) * 8px), calc(var(--ghost-i, 0) * -8px)) scale(calc(1 - var(--ghost-i, 0) * 0.08));
+}
+
+.library-drag-ghost-count {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--color-accent, #4a9eff);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  z-index: 4;
+  transform: translate(0, 0);
+}
+
+/* ============ 多选模式 ============ */
+
+.library-card-selected {
+  /* 选中态：轻微缩放 + 强调描边 */
+  outline: 3px solid var(--color-accent, #4a9eff);
+  outline-offset: 2px;
+}
+
+.library-card-selected .library-card-cover {
+  transform: scale(0.94);
+}
+
+/* 选中角标（右上角圆圈 + 勾） */
+.library-card-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  transition: all var(--transition-fast);
+  opacity: 0;
+}
+
+/* 多选模式下始终显示角标占位（空心圆），选中后变实心勾 */
+.multiselect-on .library-card-check {
+  opacity: 1;
+}
+
+.library-card-check-on {
+  opacity: 1;
+}
+
+.library-card-check-on {
+  background: var(--color-accent, #4a9eff);
+  border-color: var(--color-accent, #4a9eff);
+  color: #fff;
+}
+
+/* 多选操作栏 */
+.library-multiselect-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.library-multiselect-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.library-action-active {
+  background: var(--color-accent, #4a9eff);
+  color: #fff;
+  border-color: var(--color-accent, #4a9eff);
+}
+
+
 /* PC 端（≥1025px）隐藏顶栏的歌曲菜单入口，改由侧栏「音乐库」管理 */
 @media (min-width: 1025px) {
   .playlist-drawer-trigger {
