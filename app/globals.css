@@ -2552,9 +2552,10 @@ body.immersive-shell {
 /* ============ 多选模式 ============ */
 
 .library-card-selected {
-  /* 选中态：强调描边，不再缩放 cover（避免与 hover transform 冲突） */
-  outline: 3px solid var(--color-accent, #4a9eff);
-  outline-offset: 2px;
+  /* 用 box-shadow 模拟描边 + 提升 z-index，避免被相邻卡片背景遮挡 */
+  box-shadow: 0 0 0 3px var(--color-accent, #4a9eff);
+  z-index: 2;
+  position: relative;
 }
 
 /* 选中角标（右上角圆圈 + 勾） */
