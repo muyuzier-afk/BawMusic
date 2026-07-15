@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { usePlayer } from '@/hooks/usePlayer';
+import { useLibraryFolders } from '@/hooks/useLibraryFolders';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
@@ -66,6 +67,17 @@ export default function MusicPlayer() {
   } = usePlayer();
 
   const apiSource = useApiSource();
+  const {
+    folders,
+    createFolder,
+    renameFolder,
+    deleteFolder,
+    addSongToFolder,
+    removeSongFromFolder,
+    removeSongFromAllFolders,
+    clearAllFolders,
+    moveSongToFolder
+  } = useLibraryFolders();
 
   const [currentView, setCurrentView] = useState<'discover' | 'library'>('discover');
   const [playlistOpen, setPlaylistOpen] = useState(false);
@@ -487,7 +499,10 @@ export default function MusicPlayer() {
         
         <main className="main-content">
           <header className="top-bar glass">
-            <SearchBar onSongSelect={handlePlaySong} />
+            <SearchBar
+              onSongSelect={handlePlaySong}
+              localSource={currentView === 'library' ? playlist : undefined}
+            />
             <SourceSwitcher
               value={apiSource}
               onChange={handleChangeApiSource}
@@ -521,6 +536,7 @@ export default function MusicPlayer() {
               <div className="library-scroll">
                 <LibraryView
                   library={playlist}
+                  folders={folders}
                   onPlay={handlePlaySong}
                   onPlayAll={() => {
                     if (playlist.length === 0) return;
@@ -529,9 +545,19 @@ export default function MusicPlayer() {
                   onRemove={(id) => {
                     const idx = playlist.findIndex((s) => s.id === id);
                     if (idx >= 0) removePlaylistItem(idx);
+                    removeSongFromAllFolders(id);
                   }}
-                  onClear={clearPlaylist}
+                  onClear={() => {
+                    clearPlaylist();
+                    clearAllFolders();
+                  }}
                   onImport={() => setImportOpen(true)}
+                  onCreateFolder={createFolder}
+                  onRenameFolder={renameFolder}
+                  onDeleteFolder={deleteFolder}
+                  onAddSongToFolder={addSongToFolder}
+                  onRemoveSongFromFolder={removeSongFromFolder}
+                  onMoveSongToFolder={moveSongToFolder}
                 />
               </div>
             </div>

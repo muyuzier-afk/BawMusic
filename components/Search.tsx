@@ -9,9 +9,11 @@ import { SearchIcon, CloseIcon } from './Icons';
 
 interface SearchBarProps {
   onSongSelect: (song: Song) => void;
+  /** 传入则进入本地过滤模式（在音乐库内搜索本地歌曲），不传则走在线搜索 */
+  localSource?: Song[];
 }
 
-export function SearchBar({ onSongSelect }: SearchBarProps) {
+export function SearchBar({ onSongSelect, localSource }: SearchBarProps) {
   const [keyword, setKeyword] = useState('');
   const [suggestions, setSuggestions] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +22,9 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
+  const localSourceRef = useRef<Song[] | undefined>(localSource);
+  localSourceRef.current = localSource;
+  const isLocalMode = Boolean(localSource);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -38,18 +43,35 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
 
   const search = useCallback(async (query: string) => {
     const currentRequestId = ++requestIdRef.current;
+    const q = query.trim();
 
-    if (!query.trim()) {
+    if (!q) {
       setSuggestions([]);
       setIsOpen(false);
       setIsLoading(false);
       return;
     }
 
+    // 本地过滤模式：在音乐库内匹配
+    const local = localSourceRef.current;
+    if (local) {
+      const lower = q.toLowerCase();
+      const results = local.filter((s) =>
+        s.name.toLowerCase().includes(lower)
+        || s.artists.toLowerCase().includes(lower)
+        || s.album.toLowerCase().includes(lower)
+      ).slice(0, 20);
+      if (currentRequestId !== requestIdRef.current) return;
+      setSuggestions(results);
+      setIsOpen(results.length > 0);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
-      const results = await searchSongs(query.trim(), 5);
+      const results = await searchSongs(q, 5);
       if (currentRequestId !== requestIdRef.current) return;
 
       setSuggestions(results.slice(0, 5));
@@ -67,7 +89,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setKeyword(value);
-    
+
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -80,8 +102,14 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
       return;
     }
 
+    // 本地模式即时过滤，无需 debounce
+    if (isLocalMode) {
+      search(value);
+      return;
+    }
+
     setIsLoading(true);
-    
+
     debounceRef.current = setTimeout(() => {
       search(value);
     }, 300);
@@ -115,7 +143,19 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
     }
   };
 
-  const showDropdown = isOpen && (suggestions.length > 0 || isLoading);
+  // 本地模式：有输入即显示下拉（含空结果提示）；在线模式：有结果或 loading 时显示
+  const showDropdown = isLocalMode
+    ? Boolean(keyword.trim()) && isOpen
+    : isOpen && (suggestions.length > 0 || isLoading);
+
+  // 模式切换（视图切换）时，若已有输入则重新过滤
+  useEffect(() => {
+    if (keyword.trim()) {
+      requestIdRef.current += 1;
+      search(keyword);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLocalMode, localSource]);
 
   return (
     <div className="search-container" ref={containerRef} style={{ position: 'relative', zIndex: 1000 }}>
@@ -126,7 +166,7 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
         ref={inputRef}
         type="search"
         className="search-input"
-        placeholder="搜索音乐..."
+        placeholder={isLocalMode ? '搜索音乐库...' : '搜索音乐...'}
         value={keyword}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -194,6 +234,10 @@ export function SearchBar({ onSongSelect }: SearchBarProps) {
                 margin: '0 auto 8px'
               }} />
               <span style={{ fontSize: '13px' }}>搜索中...</span>
+            </div>
+          ) : suggestions.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: '13px' }}>
+              音乐库中没有匹配的歌曲
             </div>
           ) : (
             suggestions.map((song) => (
