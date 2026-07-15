@@ -2201,6 +2201,11 @@ body.immersive-shell {
   transform: translateY(-2px);
 }
 
+/* 选中态不弹起，改为整体轻微下沉，避免与 hover 冲突 */
+.library-card-selected:hover {
+  transform: none;
+}
+
 .library-card-cover {
   position: relative;
   width: 100%;
@@ -2547,13 +2552,9 @@ body.immersive-shell {
 /* ============ 多选模式 ============ */
 
 .library-card-selected {
-  /* 选中态：轻微缩放 + 强调描边 */
+  /* 选中态：强调描边，不再缩放 cover（避免与 hover transform 冲突） */
   outline: 3px solid var(--color-accent, #4a9eff);
   outline-offset: 2px;
-}
-
-.library-card-selected .library-card-cover {
-  transform: scale(0.94);
 }
 
 /* 选中角标（右上角圆圈 + 勾） */
