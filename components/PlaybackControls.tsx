@@ -5,7 +5,7 @@ import type { MouseEvent, TouchEvent } from 'react';
 import { Song, AudioQuality } from '@/types/music';
 import { normalizeMediaUrl } from '@/lib/media';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
-import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon, DownloadIcon, TrashIcon, CheckIcon, ImportIcon, UploadIcon } from './Icons';
+import { PlayIcon, PauseIcon, VolumeIcon, VolumeMuteIcon, ListIcon, ShuffleIcon, RepeatIcon, PrevIcon, NextIcon, ShareIcon, DownloadIcon, TrashIcon, CheckIcon, ImportIcon, UploadIcon, TranslateIcon } from './Icons';
 
 type PlayMode = 'list' | 'shuffle' | 'single';
 
@@ -34,6 +34,9 @@ interface PlaybackControlsProps {
   onCyclePlayMode: () => void;
   onAudioQualityChange: (quality: AudioQuality) => void;
   onVolumeChange: (volume: number) => void;
+  showTranslationToggle?: boolean;
+  showTranslation?: boolean;
+  onToggleTranslation?: () => void;
 }
 
 export function PlaybackControls({
@@ -50,7 +53,10 @@ export function PlaybackControls({
   showDownload = false,
   onCyclePlayMode,
   onAudioQualityChange,
-  onVolumeChange
+  onVolumeChange,
+  showTranslationToggle = false,
+  showTranslation = false,
+  onToggleTranslation
 }: PlaybackControlsProps) {
   const modeLabel = playMode === 'single' ? '单曲循环' : playMode === 'shuffle' ? '随机播放' : '列表播放';
 
@@ -104,6 +110,17 @@ export function PlaybackControls({
             data-download-anchor="true"
           >
             <DownloadIcon size={20} />
+          </button>
+        )}
+
+        {showTranslationToggle && onToggleTranslation && (
+          <button
+            className={`control-btn control-btn-translate ${showTranslation ? 'active' : ''}`}
+            onClick={onToggleTranslation}
+            aria-label={showTranslation ? '隐藏翻译' : '显示翻译'}
+            type="button"
+          >
+            <TranslateIcon size={18} />
           </button>
         )}
 

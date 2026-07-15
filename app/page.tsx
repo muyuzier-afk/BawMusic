@@ -102,6 +102,14 @@ export default function MusicPlayer() {
   const [devMenuOpen, setDevMenuOpen] = useState(false);
   const [devHydrated, setDevHydrated] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(true);
+
+  // 当前歌词是否包含翻译行，决定是否显示翻译开关
+  const hasTranslation = useMemo(() => lyric.some(line => line.translation), [lyric]);
+
+  const handleToggleTranslation = useCallback(() => {
+    setShowTranslation(prev => !prev);
+  }, []);
 
   // 从 localStorage 读取开发者模式解锁状态（仅客户端）
   useEffect(() => {
@@ -573,7 +581,7 @@ export default function MusicPlayer() {
                 onClick={handlePlayPageClick}
               >
               <div className="mobile-lyrics-bg" aria-hidden={!mobileLyricsOpen}>
-                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
+                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" showTranslation={showTranslation} />
               </div>
 
               {isLoading && (
@@ -623,13 +631,16 @@ export default function MusicPlayer() {
                 onCyclePlayMode={cyclePlayMode}
                 onAudioQualityChange={setAudioQuality}
                 onVolumeChange={setVolume}
+                showTranslationToggle={hasTranslation}
+                showTranslation={showTranslation}
+                onToggleTranslation={handleToggleTranslation}
               />
 
               {notice && <div className="player-notice">{notice}</div>}
               </div>
 
               <aside className="desktop-lyrics-pane">
-                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" />
+                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" showTranslation={showTranslation} />
               </aside>
             </div>
           )}

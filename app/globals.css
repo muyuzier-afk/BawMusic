@@ -488,16 +488,6 @@ body.immersive-shell {
   min-height: 18px;
 }
 
-/* 歌词面板外层：固定头部 + 可滚动歌词容器，避免 sticky 在移动端失效 */
-.lyrics-panel {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-  width: 100%;
-}
-
 .lyrics-container {
   flex: 1;
   min-height: 0;
@@ -509,27 +499,27 @@ body.immersive-shell {
   scroll-behavior: auto;
   /* 关闭原生 snap，改由 rAF 缓动接管 */
   scroll-snap-type: none;
-  /* 上下渐隐区加大，中间清晰带收窄，营造更强的聚焦感 */
+  /* 上下渐隐区与清晰带取折中，既能聚焦又不过度遮挡 */
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 0, 0, 0.15) 8%,
-    rgba(0, 0, 0, 0.55) 18%,
-    black 38%,
-    black 62%,
-    rgba(0, 0, 0, 0.55) 82%,
-    rgba(0, 0, 0, 0.15) 92%,
+    rgba(0, 0, 0, 0.2) 10%,
+    rgba(0, 0, 0, 0.7) 24%,
+    black 34%,
+    black 66%,
+    rgba(0, 0, 0, 0.7) 76%,
+    rgba(0, 0, 0, 0.2) 90%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 0, 0, 0.15) 8%,
-    rgba(0, 0, 0, 0.55) 18%,
-    black 38%,
-    black 62%,
-    rgba(0, 0, 0, 0.55) 82%,
-    rgba(0, 0, 0, 0.15) 92%,
+    rgba(0, 0, 0, 0.2) 10%,
+    rgba(0, 0, 0, 0.7) 24%,
+    black 34%,
+    black 66%,
+    rgba(0, 0, 0, 0.7) 76%,
+    rgba(0, 0, 0, 0.2) 90%,
     transparent 100%
   );
 }
@@ -568,18 +558,8 @@ body.immersive-shell {
   padding: 18px 28px 22px;
 }
 
-.lyrics-panel-desktop .lyrics-header {
-  padding-left: 28px;
-  padding-right: 28px;
-}
-
 .lyrics-container-mobile {
   padding: 12px 18px 28px;
-}
-
-.lyrics-panel-mobile .lyrics-header {
-  padding-left: 18px;
-  padding-right: 18px;
 }
 
 .lyric-spacer {
@@ -679,50 +659,6 @@ body.immersive-shell {
 
 .lyrics-container-desktop .lyric-line.active {
   transform: scale(1.1);
-}
-
-/* 翻译按钮头部：absolute 钉在面板右上角，脱离滚动流与 flex 链，始终可见 */
-.lyrics-header {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 10;
-  display: flex;
-  justify-content: flex-end;
-  padding: 6px 20px 8px;
-}
-
-/* Lyric translation toggle */
-.lyric-translate-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.lyric-translate-toggle:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--color-text);
-}
-
-.lyric-translate-toggle.active {
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--color-text);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.lyric-translate-toggle-text {
-  font-size: 11px;
-  font-weight: 500;
 }
 
 /* Lyric translation expand / collapse */
@@ -1844,6 +1780,20 @@ body.immersive-shell {
   border-radius: 50%;
   border: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.07);
+}
+
+.control-btn-translate {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.control-btn-translate.active {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Download quality menu */
