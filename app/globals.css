@@ -499,27 +499,27 @@ body.immersive-shell {
   scroll-behavior: auto;
   /* 关闭原生 snap，改由 rAF 缓动接管 */
   scroll-snap-type: none;
-  /* 上下渐隐区与清晰带取折中，既能聚焦又不过度遮挡 */
+  /* 上下渐隐区收窄，清晰带更宽，减弱遮挡感 */
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 0, 0, 0.2) 10%,
-    rgba(0, 0, 0, 0.7) 24%,
-    black 34%,
-    black 66%,
-    rgba(0, 0, 0, 0.7) 76%,
-    rgba(0, 0, 0, 0.2) 90%,
+    rgba(0, 0, 0, 0.3) 8%,
+    rgba(0, 0, 0, 0.8) 18%,
+    black 28%,
+    black 72%,
+    rgba(0, 0, 0, 0.8) 82%,
+    rgba(0, 0, 0, 0.3) 92%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(0, 0, 0, 0.2) 10%,
-    rgba(0, 0, 0, 0.7) 24%,
-    black 34%,
-    black 66%,
-    rgba(0, 0, 0, 0.7) 76%,
-    rgba(0, 0, 0, 0.2) 90%,
+    rgba(0, 0, 0, 0.3) 8%,
+    rgba(0, 0, 0, 0.8) 18%,
+    black 28%,
+    black 72%,
+    rgba(0, 0, 0, 0.8) 82%,
+    rgba(0, 0, 0, 0.3) 92%,
     transparent 100%
   );
 }
@@ -1632,7 +1632,8 @@ body.immersive-shell {
   }
 
   .controls {
-    gap: 14px;
+    gap: 12px;
+    justify-content: center;
   }
 
   .controls-wrap {
@@ -1640,13 +1641,21 @@ body.immersive-shell {
   }
 
   .volume-control {
-    min-width: 142px;
-    padding: 8px 10px;
+    display: none;
   }
 
+  /* 音质控件单独换到第二行居中，腾出第一行给播放+下载+翻译 */
   .quality-control {
-    min-width: 146px;
+    order: 99;
+    flex-basis: 100%;
+    justify-content: center;
+    min-width: 0;
     padding: 6px 8px;
+  }
+
+  /* 移动端用系统分享，隐藏应用内分享按钮，给翻译按钮腾位 */
+  .control-btn-share {
+    display: none;
   }
 
   .quality-label {
