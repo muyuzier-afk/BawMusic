@@ -9,10 +9,9 @@ import { SearchIcon, CloseIcon } from './Icons';
 
 interface SearchBarProps {
   onSongSelect: (song: Song) => void;
-  onAddToLibrary?: (song: Song) => void;
 }
 
-export function SearchBar({ onSongSelect, onAddToLibrary }: SearchBarProps) {
+export function SearchBar({ onSongSelect }: SearchBarProps) {
   const [keyword, setKeyword] = useState('');
   const [suggestions, setSuggestions] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -255,21 +254,6 @@ export function SearchBar({ onSongSelect, onAddToLibrary }: SearchBarProps) {
                     {song.artists}
                   </div>
                 </div>
-                {onAddToLibrary && (
-                  <button
-                    type="button"
-                    className="search-add-library"
-                    aria-label="加入音乐库"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onAddToLibrary(song);
-                    }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </button>
-                )}
               </div>
             ))
           )}

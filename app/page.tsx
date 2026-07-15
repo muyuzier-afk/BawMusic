@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { usePlayer } from '@/hooks/usePlayer';
-import { useLibrary } from '@/hooks/useLibrary';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
@@ -67,8 +66,7 @@ export default function MusicPlayer() {
   } = usePlayer();
 
   const apiSource = useApiSource();
-  const { library, addToLibrary, removeFromLibrary, clearLibrary } = useLibrary();
-  
+
   const [currentView, setCurrentView] = useState<'discover' | 'library'>('discover');
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [mobileLyricsOpen, setMobileLyricsOpen] = useState(false);
@@ -78,7 +76,6 @@ export default function MusicPlayer() {
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState<DOMRect | null>(null);
   const [downloadBusy, setDownloadBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [importTarget, setImportTarget] = useState<'playlist' | 'library'>('playlist');
   const [importUrl, setImportUrl] = useState('');
   const [importBusy, setImportBusy] = useState(false);
   const [importJsonBusy, setImportJsonBusy] = useState(false);
@@ -173,8 +170,9 @@ export default function MusicPlayer() {
   }, [activeLyricIndex]);
   
   const handlePlaySong = useCallback((song: Song) => {
-    playSong(song);
-  }, [playSong]);
+    // 搜索点歌默认加入音乐库（与播放队列共用的 playlist），已存在则直接定位播放
+    void playSongById(song.id);
+  }, [playSongById]);
 
   const handleDownloadClick = useCallback((event: MouseEvent<HTMLElement>) => {
     if (!currentSong) return;
@@ -218,19 +216,11 @@ export default function MusicPlayer() {
     setImportBusy(true);
     try {
       const info = await fetchPlaylist(playlistId);
-      if (importTarget === 'library') {
-        for (const song of info.songs) {
-          addToLibrary(song);
-        }
-        showNotice(`已加入音乐库「${info.name}」共 ${info.songs.length} 首歌曲`);
-      } else {
-        clearPlaylist();
-        for (const song of info.songs) {
-          addToPlaylist(song);
-        }
-        showNotice(`已导入「${info.name}」共 ${info.songs.length} 首歌曲`);
-        setPlaylistOpen(true);
+      clearPlaylist();
+      for (const song of info.songs) {
+        addToPlaylist(song);
       }
+      showNotice(`已导入「${info.name}」共 ${info.songs.length} 首歌曲`);
       setImportOpen(false);
       setImportUrl('');
     } catch (err) {
@@ -241,7 +231,7 @@ export default function MusicPlayer() {
     } finally {
       setImportBusy(false);
     }
-  }, [importUrl, importBusy, importTarget, showNotice, clearPlaylist, addToPlaylist, addToLibrary]);
+  }, [importUrl, importBusy, showNotice, clearPlaylist, addToPlaylist]);
 
   const handleExportPlaylist = useCallback(() => {
     if (playlist.length === 0) {
@@ -326,19 +316,11 @@ export default function MusicPlayer() {
           throw new Error('JSON 中没有可识别的歌曲数据');
         }
 
-        if (importTarget === 'library') {
-          for (const song of songs) {
-            addToLibrary(song);
-          }
-          showNotice(`已加入音乐库 ${songs.length} 首歌曲`);
-        } else {
-          clearPlaylist();
-          for (const song of songs) {
-            addToPlaylist(song);
-          }
-          showNotice(`已从 JSON 导入 ${songs.length} 首歌曲`);
-          setPlaylistOpen(true);
+        clearPlaylist();
+        for (const song of songs) {
+          addToPlaylist(song);
         }
+        showNotice(`已从 JSON 导入 ${songs.length} 首歌曲`);
         setImportOpen(false);
       } catch (err) {
         const message = err instanceof Error ? err.message : '导入失败，请稍后重试';
@@ -350,7 +332,7 @@ export default function MusicPlayer() {
         }
       }
     },
-    [importJsonBusy, importTarget, showNotice, clearPlaylist, addToPlaylist, addToLibrary]
+    [importJsonBusy, showNotice, clearPlaylist, addToPlaylist]
   );
 
   const handleChangeApiSource = useCallback((source: ApiSource) => {
@@ -505,13 +487,7 @@ export default function MusicPlayer() {
         
         <main className="main-content">
           <header className="top-bar glass">
-            <SearchBar
-              onSongSelect={handlePlaySong}
-              onAddToLibrary={(song) => {
-                addToLibrary(song);
-                showNotice(`已加入音乐库：${song.name}`);
-              }}
-            />
+            <SearchBar onSongSelect={handlePlaySong} />
             <SourceSwitcher
               value={apiSource}
               onChange={handleChangeApiSource}
@@ -544,40 +520,20 @@ export default function MusicPlayer() {
             <div className="library-page">
               <div className="library-scroll">
                 <LibraryView
-                  library={library}
-                  onPlay={playSong}
+                  library={playlist}
+                  onPlay={handlePlaySong}
                   onPlayAll={() => {
-                    if (library.length === 0) return;
-                    clearPlaylist();
-                    library.forEach(addToPlaylist);
-                    void playSongById(library[0].id);
+                    if (playlist.length === 0) return;
+                    void playAt(0);
                   }}
-                  onRemove={removeFromLibrary}
-                  onClear={clearLibrary}
-                  onImport={() => { setImportTarget('library'); setImportOpen(true); }}
+                  onRemove={(id) => {
+                    const idx = playlist.findIndex((s) => s.id === id);
+                    if (idx >= 0) removePlaylistItem(idx);
+                  }}
+                  onClear={clearPlaylist}
+                  onImport={() => setImportOpen(true)}
                 />
               </div>
-              {showPlayer && (
-                <div className="library-controls">
-                  <ProgressBar currentTime={currentTime} duration={duration} onSeek={seek} />
-                  <PlaybackControls
-                    isPlaying={isPlaying}
-                    playMode={playMode}
-                    audioQuality={audioQuality}
-                    volume={volume}
-                    onTogglePlay={togglePlay}
-                    onNext={playNext}
-                    onPrev={playPrev}
-                    onShare={handleShareSong}
-                    showShare={!isNativeApp && Boolean(currentSong)}
-                    onDownload={handleDownloadClick}
-                    showDownload={Boolean(currentSong)}
-                    onCyclePlayMode={cyclePlayMode}
-                    onAudioQualityChange={setAudioQuality}
-                    onVolumeChange={setVolume}
-                  />
-                </div>
-              )}
             </div>
           )}
 
@@ -673,7 +629,7 @@ export default function MusicPlayer() {
         onRemoveItem={removePlaylistItem}
         onClearPlaylist={clearPlaylist}
         onRemoveItems={removePlaylistItems}
-        onImport={() => { setImportTarget('playlist'); setImportOpen(true); }}
+        onImport={() => setImportOpen(true)}
         onExport={handleExportPlaylist}
       />
 
@@ -706,12 +662,8 @@ export default function MusicPlayer() {
               关闭
             </button>
 
-            <h2 className="details-title">{importTarget === 'library' ? '导入到音乐库' : '导入播放列表'}</h2>
-            <p className="details-subtitle">
-              {importTarget === 'library'
-                ? '通过歌单链接或 JSON 文件导入，歌曲将加入音乐库（不会清空当前库）'
-                : '通过歌单链接或 JSON 文件导入，导入时会清空当前列表'}
-            </p>
+            <h2 className="details-title">导入播放列表</h2>
+            <p className="details-subtitle">通过歌单链接或 JSON 文件导入，导入时会清空当前列表</p>
 
             <h3 className="import-section-title">从网易云歌单导入</h3>
             <div className="import-field">
@@ -749,11 +701,7 @@ export default function MusicPlayer() {
             </div>
 
             <h3 className="import-section-title">从 JSON 文件导入</h3>
-            <p className="import-hint">
-              {importTarget === 'library'
-                ? '选择之前导出的 JSON 文件，歌曲将加入音乐库'
-                : '选择之前导出的 JSON 文件，将覆盖当前列表'}
-            </p>
+            <p className="import-hint">选择之前导出的 JSON 文件，将覆盖当前列表</p>
             <input
               ref={importFileInputRef}
               type="file"
