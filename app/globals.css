@@ -1572,6 +1572,108 @@ body.immersive-shell {
   overflow: hidden;
 }
 
+/* ===== AMLL 全屏播放器（amllEnabled 时整页替换 player-shell） ===== */
+.amll-player {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.amll-player-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.amll-player-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+
+.amll-player-lyrics {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 220px;
+  z-index: 2;
+}
+
+.amll-player-bottom {
+  position: relative;
+  z-index: 3;
+  margin-top: auto;
+  padding: 16px 32px calc(24px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 720px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.amll-player-songinfo {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.amll-player-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.amll-player-artist {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.amll-player-loading {
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.amll-player-notice {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* AMLL 全屏播放器：控制栏文字/图标在深色流体背景上用白色 */
+.amll-player .progress-time,
+.amll-player .controls,
+.amll-player .quality-control,
+.amll-player .volume-control {
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .amll-player-lyrics {
+    bottom: 200px;
+  }
+  .amll-player-bottom {
+    padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+  }
+  .amll-player-title {
+    font-size: 18px;
+  }
+}
+
 /* Import dialog JSON section */
 .import-section-title {
   margin: 16px 0 6px;

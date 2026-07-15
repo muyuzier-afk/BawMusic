@@ -6,7 +6,7 @@ import { usePlayer } from '@/hooks/usePlayer';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
-import { AmllLyrics } from '@/components/AmllLyrics';
+import { AmllPlayer } from '@/components/AmllPlayer';
 import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls';
 import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { DownloadMenu } from '@/components/DownloadMenu';
@@ -519,7 +519,32 @@ export default function MusicPlayer() {
             </button>
           </header>
           
-          {showPlayer && (
+          {showPlayer && amllEnabled && (
+            <AmllPlayer
+              currentSong={currentSong}
+              isPlaying={isPlaying}
+              currentTime={currentTime}
+              duration={duration}
+              lyric={lyric}
+              volume={volume}
+              playMode={playMode}
+              audioQuality={audioQuality}
+              notice={notice}
+              isLoading={isLoading}
+              isNativeApp={isNativeApp}
+              onTogglePlay={togglePlay}
+              onNext={playNext}
+              onPrev={playPrev}
+              onSeek={seek}
+              onVolumeChange={setVolume}
+              onCyclePlayMode={cyclePlayMode}
+              onAudioQualityChange={setAudioQuality}
+              onShare={handleShareSong}
+              onDownload={handleDownloadClick}
+            />
+          )}
+
+          {showPlayer && !amllEnabled && (
             <div className="player-shell">
               <div
                 className={`play-page player-main ${mobileLyricsOpen ? 'lyrics-on-bg' : ''}`}
@@ -527,17 +552,13 @@ export default function MusicPlayer() {
                 onClick={handlePlayPageClick}
               >
               <div className="mobile-lyrics-bg" aria-hidden={!mobileLyricsOpen}>
-                {amllEnabled ? (
-                  <AmllLyrics lyrics={lyric} currentTime={currentTime} isPlaying={isPlaying} variant="mobile" />
-                ) : (
-                  <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
-                )}
+                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" />
               </div>
 
               {isLoading && (
                 <div className="loading-spinner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
               )}
-              
+
               <img
                 src={normalizeMediaUrl(currentSong.picUrl) || PLACEHOLDER_COVER}
                 alt={currentSong.name}
@@ -554,18 +575,18 @@ export default function MusicPlayer() {
                   }
                 }}
               />
-              
+
               <div className="song-info">
                 <div className="song-title">{currentSong.name}</div>
                 <div className="song-artist">{currentSong.artists} - {currentSong.album}</div>
               </div>
-              
+
               <ProgressBar
                 currentTime={currentTime}
                 duration={duration}
                 onSeek={seek}
               />
-              
+
               <PlaybackControls
                 isPlaying={isPlaying}
                 playMode={playMode}
@@ -587,11 +608,7 @@ export default function MusicPlayer() {
               </div>
 
               <aside className="desktop-lyrics-pane">
-                {amllEnabled ? (
-                  <AmllLyrics lyrics={lyric} currentTime={currentTime} isPlaying={isPlaying} variant="desktop" />
-                ) : (
-                  <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" />
-                )}
+                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" />
               </aside>
             </div>
           )}
