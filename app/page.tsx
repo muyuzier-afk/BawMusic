@@ -103,6 +103,9 @@ export default function MusicPlayer() {
   const [devUnlocked, setDevUnlocked] = useState(false);
   const [devMenuOpen, setDevMenuOpen] = useState(false);
   const [devHydrated, setDevHydrated] = useState(false);
+  const [devTick, setDevTick] = useState(0); // DevMenu 打开时定时刷新运行时信息
+  const [devSeekInput, setDevSeekInput] = useState('');
+  const [devJumpIndex, setDevJumpIndex] = useState('');
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
   // LiquidFlow Styles：手机端陀螺仪驱动背景液体流动
@@ -134,6 +137,66 @@ export default function MusicPlayer() {
       return next;
     });
   }, []);
+
+  // DevMenu：跳转到指定秒数
+  const handleDevSeek = useCallback(() => {
+    const sec = Number(devSeekInput);
+    if (Number.isNaN(sec) || sec < 0) {
+      showNotice('请输入有效的秒数');
+      return;
+    }
+    seek(sec);
+    showNotice(`已跳转到 ${sec}s`);
+  }, [devSeekInput, seek, showNotice]);
+
+  // DevMenu：跳转到播放列表指定索引
+  const handleDevJump = useCallback(() => {
+    const idx = Number(devJumpIndex);
+    if (Number.isNaN(idx) || idx < 1 || idx > playlist.length) {
+      showNotice(`请输入 1-${playlist.length} 之间的索引`);
+      return;
+    }
+    playAt(idx - 1);
+    showNotice(`已跳转到 #${idx}`);
+  }, [devJumpIndex, playlist.length, playAt, showNotice]);
+
+  // DevMenu：复制当前歌曲 ID
+  const handleDevCopySongId = useCallback(() => {
+    if (!currentSong) {
+      showNotice('当前无播放歌曲');
+      return;
+    }
+    try {
+      navigator.clipboard?.writeText(String(currentSong.id));
+      showNotice(`已复制歌曲 ID：${currentSong.id}`);
+    } catch {
+      showNotice('剪贴板不可用');
+    }
+  }, [currentSong, showNotice]);
+
+  // DevMenu：导出播放列表 JSON（复用已有逻辑，但走下载）
+  const handleDevExportPlaylist = useCallback(() => {
+    if (playlist.length === 0) {
+      showNotice('播放列表为空');
+      return;
+    }
+    try {
+      const payload = { version: 1, exportedAt: new Date().toISOString(), songs: playlist };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `playlist-${ts}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showNotice(`已导出 ${playlist.length} 首歌曲`);
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : '导出失败');
+    }
+  }, [playlist, showNotice]);
 
   const { offsetX, offsetY, requestPermission, supported: orientationSupported } = useDeviceOrientation({
     enabled: liquidFlow && isMobile,
@@ -232,7 +295,14 @@ export default function MusicPlayer() {
       }
     };
   }, []);
-  
+
+  // DevMenu 打开时定时刷新运行时信息（网络/视口/时间等动态值）
+  useEffect(() => {
+    if (!devMenuOpen) return;
+    const timer = setInterval(() => setDevTick(t => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, [devMenuOpen]);
+
   const bgImage = useMemo(() => {
     return normalizeMediaUrl(currentSong?.picUrl);
   }, [currentSong?.picUrl]);
@@ -1007,6 +1077,7 @@ export default function MusicPlayer() {
                 开发者模式 · 已解锁（仅本机 localStorage 持久化）
               </p>
 
+              <h3 className="devmenu-section-title">运行时</h3>
               <ul className="devmenu-list">
                 <li className="devmenu-item">
                   <span className="devmenu-item-label">构建 SHA</span>
@@ -1054,6 +1125,12 @@ export default function MusicPlayer() {
                   <code className="devmenu-item-value">{playMode}</code>
                 </li>
                 <li className="devmenu-item">
+                  <span className="devmenu-item-label">播放范围</span>
+                  <code className="devmenu-item-value">
+                    {playbackScope ? `文件夹内 (${playbackScope.length} 首)` : '全列表'}
+                  </code>
+                </li>
+                <li className="devmenu-item">
                   <span className="devmenu-item-label">运行环境</span>
                   <code className="devmenu-item-value">
                     {isNativeApp ? 'Native (Capacitor)' : 'Web'}
@@ -1071,7 +1148,131 @@ export default function MusicPlayer() {
                 </li>
               </ul>
 
+              <h3 className="devmenu-section-title">环境信息</h3>
+              <ul className="devmenu-list" data-devtick={devTick}>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">网络</span>
+                  <code className="devmenu-item-value">
+                    {typeof navigator !== 'undefined' && navigator.onLine ? '在线' : '离线'}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">视口</span>
+                  <code className="devmenu-item-value">
+                    {typeof window !== 'undefined' ? `${window.innerWidth}×${window.innerHeight}` : '—'}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">屏幕</span>
+                  <code className="devmenu-item-value">
+                    {typeof window !== 'undefined' && window.screen
+                      ? `${window.screen.width}×${window.screen.height} · DPR=${window.devicePixelRatio}`
+                      : '—'}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">UA</span>
+                  <code className="devmenu-item-value">
+                    {typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 80) : '—'}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">历史记录</span>
+                  <code className="devmenu-item-value">
+                    {(() => {
+                      if (typeof window === 'undefined') return '—';
+                      try {
+                        const raw = window.localStorage.getItem('bawmusic:play-history');
+                        const n = raw ? (JSON.parse(raw) as unknown[]).length : 0;
+                        return `${n} 条`;
+                      } catch { return '—'; }
+                    })()}
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">文件夹</span>
+                  <code className="devmenu-item-value">
+                    {folders.length} 个 · 共 {folders.reduce((s, f) => s + f.songIds.length, 0)} 首
+                  </code>
+                </li>
+                <li className="devmenu-item">
+                  <span className="devmenu-item-label">存储占用</span>
+                  <code className="devmenu-item-value">
+                    {(() => {
+                      if (typeof window === 'undefined') return '—';
+                      try {
+                        let bytes = 0;
+                        for (let i = 0; i < window.localStorage.length; i++) {
+                          const k = window.localStorage.key(i);
+                          if (!k) continue;
+                          const v = window.localStorage.getItem(k) ?? '';
+                          bytes += k.length + v.length;
+                        }
+                        return `${(bytes / 1024).toFixed(1)} KB`;
+                      } catch { return '—'; }
+                    })()}
+                  </code>
+                </li>
+              </ul>
+
+              <h3 className="devmenu-section-title">快速操作</h3>
+              <div className="devmenu-tools">
+                <label className="devmenu-field">
+                  <span className="devmenu-field-label">跳转秒数</span>
+                  <div className="devmenu-field-row">
+                    <input
+                      className="devmenu-input"
+                      type="number"
+                      min={0}
+                      step={1}
+                      placeholder="如 60"
+                      value={devSeekInput}
+                      onChange={(e) => setDevSeekInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleDevSeek(); }}
+                    />
+                    <button type="button" className="devmenu-action devmenu-action-sm" onClick={handleDevSeek}>跳转</button>
+                  </div>
+                </label>
+                <label className="devmenu-field">
+                  <span className="devmenu-field-label">列表索引</span>
+                  <div className="devmenu-field-row">
+                    <input
+                      className="devmenu-input"
+                      type="number"
+                      min={1}
+                      step={1}
+                      placeholder={`1-${playlist.length || 1}`}
+                      value={devJumpIndex}
+                      onChange={(e) => setDevJumpIndex(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleDevJump(); }}
+                    />
+                    <button type="button" className="devmenu-action devmenu-action-sm" onClick={handleDevJump}>播放</button>
+                  </div>
+                </label>
+              </div>
+
               <div className="devmenu-actions">
+                <button
+                  type="button"
+                  className="devmenu-action"
+                  onClick={() => { reFetchCurrentSong(); showNotice('已重新加载当前歌曲'); }}
+                >
+                  重载当前歌
+                </button>
+                <button
+                  type="button"
+                  className="devmenu-action"
+                  onClick={handleDevCopySongId}
+                >
+                  复制歌曲 ID
+                </button>
+                <button
+                  type="button"
+                  className="devmenu-action"
+                  onClick={handleDevExportPlaylist}
+                >
+                  导出列表 JSON
+                </button>
                 <button
                   type="button"
                   className="devmenu-action"

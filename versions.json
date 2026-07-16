@@ -1,7 +1,18 @@
 {
   "schemaVersion": 1,
-  "current": "1d3a04e",
+  "current": "65d0e7d",
   "versions": [
+    {
+      "sha": "65d0e7d",
+      "date": "2026-07-16T13:35:00Z",
+      "title": "DevMenu 实用化升级：环境信息 + 快速操作分区",
+      "highlights": [
+        "新增环境信息：网络/视口/屏幕DPR/UA/历史记录条数/文件夹统计/localStorage占用",
+        "新增快速操作：跳转秒数、列表索引跳转、重载当前歌、复制歌曲ID、导出列表JSON",
+        "运行时新增播放范围(文件夹内/全列表)显示",
+        "DevMenu 打开时每秒刷新动态值，关闭即停"
+      ]
+    },
     {
       "sha": "1d3a04e",
       "date": "2026-07-16T13:10:00Z",

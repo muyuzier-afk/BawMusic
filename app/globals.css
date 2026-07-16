@@ -1524,6 +1524,68 @@ body.immersive-shell {
   filter: brightness(1.15);
 }
 
+.devmenu-section-title {
+  margin: 14px 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: rgba(255, 200, 80, 0.7);
+}
+
+.devmenu-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.devmenu-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.devmenu-field-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.devmenu-field-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.devmenu-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: rgba(255, 220, 150, 0.92);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 200, 80, 0.25);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 160ms ease;
+}
+
+.devmenu-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.devmenu-input:focus {
+  border-color: rgba(255, 200, 80, 0.6);
+}
+
+.devmenu-action-sm {
+  flex: 0 0 auto;
+  min-width: 64px;
+  padding: 7px 14px;
+  font-size: 12px;
+}
+
 /* Import dialog JSON section */
 .import-section-title {
   margin: 16px 0 6px;
