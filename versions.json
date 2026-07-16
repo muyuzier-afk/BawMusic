@@ -1,7 +1,19 @@
 {
   "schemaVersion": 1,
-  "current": "580d27d",
+  "current": "bb76de3",
   "versions": [
+    {
+      "sha": "bb76de3",
+      "date": "2026-07-17T00:00:00Z",
+      "title": "PC 端 Better Styles 三栏布局",
+      "highlights": [
+        "PC 端启用三栏布局：左 Sidebar + 中主内容（内联搜索/音乐库）+ 右 Now Playing 常驻面板",
+        "BetterPlayer 新增 panel 模式：右侧 380px 常驻面板，封面/歌词/控件垂直排布",
+        "FullScreenSearch 新增 inline 模式：PC 端搜索嵌入中栏，非全屏 overlay",
+        "移动端保持原全屏 overlay 体验，PC/移动端按 768px 断点自动切换",
+        "isMobile 惰性初始化 + 窗口尺寸监听，消除布局闪现并支持缩放响应"
+      ]
+    },
     {
       "sha": "580d27d",
       "date": "2026-07-16T19:00:00Z",
