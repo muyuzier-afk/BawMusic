@@ -53,7 +53,7 @@ export function AmllLyrics({
   if (amllLines.length === 0) {
     return (
       <div className="amll-lyrics-empty">
-        <span>暂无歌词</span>
+        <div className="loading-spinner" aria-label="歌词加载中" />
       </div>
     );
   }

@@ -97,7 +97,9 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default', showTran
     return (
       <div className={`lyrics-container lyrics-container-${variant}`} ref={containerRef}>
         <div className="lyric-spacer" aria-hidden="true" />
-        <div className="lyric-line">暂无歌词</div>
+        <div className="lyrics-empty-loading">
+          <div className="loading-spinner" aria-label="歌词加载中" />
+        </div>
         <div className="lyric-spacer" aria-hidden="true" />
       </div>
     );
