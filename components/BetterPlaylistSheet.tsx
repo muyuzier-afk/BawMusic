@@ -300,7 +300,8 @@ export function BetterPlaylistSheet({
                   className={`bps-item-row ${swipingIndex === index ? 'swiping' : ''} ${swipingIndex === index && swipeOffset <= -64 ? 'armed' : ''}`}
                 >
                   <div className="bps-item-delete" aria-hidden="true">
-                    <TrashIcon size={18} />
+                    <TrashIcon size={16} />
+                    <span className="bps-item-delete-text">删除</span>
                   </div>
                   <div
                     data-index={index}
@@ -322,24 +323,26 @@ export function BetterPlaylistSheet({
                         {isSelected && <CheckIcon size={12} />}
                       </button>
                     )}
-                    <img
-                      src={normalizeMediaUrl(song.picUrl) || PLACEHOLDER_COVER}
-                      alt={song.name}
-                      className="bps-item-cover"
-                      loading="lazy"
-                      onError={(e) => { if (e.currentTarget.src !== PLACEHOLDER_COVER) e.currentTarget.src = PLACEHOLDER_COVER; }}
-                    />
+                    <div className="bps-item-cover-wrap">
+                      <img
+                        src={normalizeMediaUrl(song.picUrl) || PLACEHOLDER_COVER}
+                        alt={song.name}
+                        className="bps-item-cover"
+                        loading="lazy"
+                        onError={(e) => { if (e.currentTarget.src !== PLACEHOLDER_COVER) e.currentTarget.src = PLACEHOLDER_COVER; }}
+                      />
+                      {isActive && (
+                        <span className="bps-item-cover-badge" aria-hidden="true">
+                          <span className="bps-equalizer bps-equalizer-sm">
+                            <span /><span /><span /><span />
+                          </span>
+                        </span>
+                      )}
+                    </div>
                     <div className="bps-item-info">
                       <div className={`bps-item-title ${isActive ? 'playing' : ''}`}>{song.name}</div>
                       <div className="bps-item-artist">{song.artists}</div>
                     </div>
-                    {isActive && (
-                      <div className="bps-item-indicator" aria-hidden="true">
-                        <span className="bps-equalizer bps-equalizer-sm">
-                          <span /><span /><span /><span />
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
               );
