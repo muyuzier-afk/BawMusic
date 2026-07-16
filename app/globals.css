@@ -4114,7 +4114,7 @@ body.better-styles .sidebar-item {
   overflow: hidden;
 }
 
-/* 删除底色：纯色底，滑动时露出作为视觉反馈（无按钮/图标，符合滑动删除交互） */
+/* 删除底色：默认隐藏，仅滑动时露出，避免静止状态在卡片右侧占位露色 */
 .bps-item-delete {
   position: absolute;
   top: 0;
@@ -4123,6 +4123,13 @@ body.better-styles .sidebar-item {
   width: 96px;
   background: rgba(80, 80, 88, 0.96);
   border-radius: 14px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bps-item-row.swiping .bps-item-delete,
+.bps-item-row.armed .bps-item-delete {
+  opacity: 1;
 }
 
 .bps-item-row.swiping .bps-item {
