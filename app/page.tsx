@@ -111,11 +111,19 @@ export default function MusicPlayer() {
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
   // LiquidFlow Styles：手机端陀螺仪驱动背景液体流动
-  const [liquidFlow, setLiquidFlow] = useState(false);
+  // 初始值优先读取内联脚本注入的 window.__BAW_INIT__，避免首屏闪现
+  const [liquidFlow, setLiquidFlow] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (window as any).__BAW_INIT__?.liquidFlow === true;
+  });
   const [liquidFlowHydrated, setLiquidFlowHydrated] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  // Better Styles (Beta)：样式增强开关，具体功能待实现
-  const [betterStyles, setBetterStyles] = useState(false);
+  // Better Styles (Beta)：样式增强开关
+  // 初始值优先读取内联脚本注入的 window.__BAW_INIT__，避免首屏闪现 Old UI
+  const [betterStyles, setBetterStyles] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (window as any).__BAW_INIT__?.betterStyles === true;
+  });
   const [betterStylesHydrated, setBetterStylesHydrated] = useState(false);
 
   // 读取 LiquidFlow / Better Styles 持久化状态 + 检测移动端

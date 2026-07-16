@@ -74,8 +74,9 @@ export function FullScreenSearch({ onSongSelect, onClose, limit = 30 }: FullScre
   };
 
   const handleSelect = (song: Song) => {
-    onSongSelect(song);
+    // 先关闭搜索界面，避免播放器渲染时被搜索 overlay 覆盖
     onClose();
+    onSongSelect(song);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

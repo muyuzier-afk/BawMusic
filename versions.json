@@ -1,7 +1,19 @@
 {
   "schemaVersion": 1,
-  "current": "f58ba9a",
+  "current": "32ee9f8",
   "versions": [
+    {
+      "sha": "32ee9f8",
+      "date": "2026-07-16T18:00:00Z",
+      "title": "Better Styles UX 优化",
+      "highlights": [
+        "修复水合闪烁：内联脚本预读 localStorage，Better UI 用户首屏不再闪现 Old UI",
+        "全屏搜索 z-index 提至 200，盖住 top-bar 设置/菜单按钮",
+        "修复搜索选歌后搜索界面仍覆盖播放器的逻辑问题（先关闭搜索再播放）",
+        "Better Styles 下播放列表抽屉改为透明背景 + 毛玻璃，列表项半透明白底保证易读性",
+        "迷你播放器收起态背景改为透明 + 毛玻璃"
+      ]
+    },
     {
       "sha": "f58ba9a",
       "date": "2026-07-16T17:00:00Z",
