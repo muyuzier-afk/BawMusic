@@ -123,11 +123,12 @@ export default function MusicPlayer() {
     if (typeof window === 'undefined') return false;
     return window.matchMedia('(max-width: 768px)').matches || typeof window.orientation !== 'undefined';
   });
-  // Better Styles (Beta)：样式增强开关
-  // 初始值优先读取内联脚本注入的 window.__BAW_INIT__，避免首屏闪现 Old UI
+  // Better Styles (Beta)：样式增强开关，默认开启
+  // 初始值优先读取内联脚本注入的 window.__BAW_INIT__（默认 true），避免首屏闪现 Old UI
   const [betterStyles, setBetterStyles] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return (window as any).__BAW_INIT__?.betterStyles === true;
+    if (typeof window === 'undefined') return true;
+    const init = (window as any).__BAW_INIT__;
+    return init ? init.betterStyles === true : true;
   });
   const [betterStylesHydrated, setBetterStylesHydrated] = useState(false);
 
@@ -137,8 +138,10 @@ export default function MusicPlayer() {
     try {
       const stored = window.localStorage.getItem('bawmusic:liquid-flow');
       if (stored === '1') setLiquidFlow(true);
+      // Better Styles 默认开启：仅当显式存 '0' 才关闭
       const storedBs = window.localStorage.getItem('bawmusic:better-styles');
-      if (storedBs === '1') setBetterStyles(true);
+      if (storedBs === '0') setBetterStyles(false);
+      else setBetterStyles(true);
     } catch { /* ignore */ }
     setLiquidFlowHydrated(true);
     setBetterStylesHydrated(true);
@@ -1105,14 +1108,6 @@ export default function MusicPlayer() {
                   </span>
                 </button>
               )}
-              <a
-                className="about-mini-link"
-                href="https://afdian.com/a/han5n"
-                target="_blank"
-                rel="noreferrer"
-              >
-                爱发电支持 ↗
-              </a>
             </div>
           </section>
         </div>
