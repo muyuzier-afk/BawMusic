@@ -41,10 +41,10 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default', showTran
     const start = container.scrollTop;
     const distance = target - start;
     if (Math.abs(distance) < 1) return;
-    const duration = 460;
+    const duration = 600;
     const startTime = performance.now();
-    // ease-out-quart，快速接近目标后缓缓停下
-    const ease = (t: number) => 1 - Math.pow(1 - t, 4);
+    // ease-in-out-quint，起步和收尾都柔和，避免 ease-out 前段过陡"一下子到位"
+    const ease = (t: number) => (t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2);
     const tick = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(1, elapsed / duration);
