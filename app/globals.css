@@ -950,11 +950,9 @@ body.immersive-shell {
 }
 
 .details-btn {
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background: transparent;
   color: rgba(255, 255, 255, 0.92);
   width: 40px;
   height: 40px;
@@ -2829,11 +2827,9 @@ body.better-styles {
   --blur-saturate: 200%;
 }
 
-/* Better Styles 下控制栏更紧凑精致的玻璃质感 */
+/* Better Styles 下顶栏保持透明 */
 body.better-styles .top-bar {
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  background: rgba(20, 20, 20, 0.42);
+  background: transparent;
 }
 
 /* Better Styles 下播放主按钮加发光 */

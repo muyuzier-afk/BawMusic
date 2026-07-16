@@ -1,9 +1,19 @@
 {
   "schemaVersion": 1,
-  "current": "3b8a28b",
+  "current": "27a7f56",
   "versions": [
     {
-      "sha": "3b8a28b",
+      "sha": "27a7f56",
+      "date": "2026-07-16T15:30:00Z",
+      "title": "修复：顶栏与设置图标改为透明",
+      "highlights": [
+        "移除 top-bar 的 glass class，去掉淡灰色玻璃背景",
+        "details-btn（设置齿轮）背景改为 transparent，移除 border 与 backdrop-filter",
+        "Better Styles 下顶栏背景也改为透明"
+      ]
+    },
+    {
+      "sha": "4a6a09c",
       "date": "2026-07-16T14:20:00Z",
       "title": "Better Styles: 接入 AMLL 逐字歌词 + 视觉增强",
       "highlights": [

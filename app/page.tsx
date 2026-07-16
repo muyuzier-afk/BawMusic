@@ -653,7 +653,7 @@ export default function MusicPlayer() {
         <Sidebar currentView={currentView} onViewChange={setCurrentView} />
         
         <main className="main-content">
-          <header className="top-bar glass">
+          <header className="top-bar">
             <SearchBar
               onSongSelect={handlePlaySong}
               localSource={currentView === 'library' ? playlist : undefined}
