@@ -15,6 +15,17 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default', showTran
   const activeRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
 
+  // 计算当前活跃行索引（需在 hooks 之前，供 useEffect 依赖）
+  let currentIndex = -1;
+  if (lyrics.length > 0) {
+    for (let i = lyrics.length - 1; i >= 0; i--) {
+      if (lyrics[i].time <= currentTime) {
+        currentIndex = i;
+        break;
+      }
+    }
+  }
+
   // 自定义缓动滚动，避免原生 smooth 在快速切歌时卡顿/打断
   const scrollToActive = useCallback(() => {
     if (rafRef.current !== null) {
@@ -47,14 +58,36 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default', showTran
     rafRef.current = requestAnimationFrame(tick);
   }, []);
 
+  // 立即居中（不缓动），用于翻译展开/收起过渡期间，配合 ResizeObserver 持续保持居中
+  const snapToActive = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (!activeRef.current || !containerRef.current) return;
+    const container = containerRef.current;
+    const active = activeRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    const target = active.offsetTop - containerRect.height / 2 + activeRect.height / 2;
+    container.scrollTop = target;
+  }, []);
+
   useEffect(() => {
     scrollToActive();
   }, [currentTime, scrollToActive]);
 
-  // 翻译显隐切换后，行高变化，需要重新居中当前行
+  // 翻译切换或活跃行变化时，用 ResizeObserver 在高度过渡期间持续把活跃行钉在中央，
+  // 避免 max-height 过渡进行中算出的居中位置不准导致歌词跳动
   useEffect(() => {
-    scrollToActive();
-  }, [showTranslation, scrollToActive]);
+    if (!activeRef.current || !containerRef.current) return;
+    snapToActive();
+    const observer = new ResizeObserver(() => {
+      snapToActive();
+    });
+    observer.observe(activeRef.current);
+    return () => observer.disconnect();
+  }, [snapToActive, showTranslation, currentIndex]);
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -68,14 +101,6 @@ export function LyricsPanel({ lyrics, currentTime, variant = 'default', showTran
         <div className="lyric-spacer" aria-hidden="true" />
       </div>
     );
-  }
-
-  let currentIndex = -1;
-  for (let i = lyrics.length - 1; i >= 0; i--) {
-    if (lyrics[i].time <= currentTime) {
-      currentIndex = i;
-      break;
-    }
   }
 
   return (
