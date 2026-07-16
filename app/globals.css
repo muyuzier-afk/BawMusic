@@ -3088,15 +3088,13 @@ body.better-styles .sidebar-item {
 }
 
 .better-player-play {
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 50%;
-  width: 76px;
-  height: 76px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .better-player-play:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: transparent;
   transform: scale(1.05);
 }
 
@@ -3395,11 +3393,6 @@ body.better-styles .sidebar-item {
 
   .better-player-controls {
     padding: 4px 16px 14px;
-  }
-
-  .better-player-play {
-    width: 68px;
-    height: 68px;
   }
 
   .better-player-extras {
