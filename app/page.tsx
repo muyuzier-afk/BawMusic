@@ -573,6 +573,8 @@ export default function MusicPlayer() {
   // PC Better Styles：启用三栏布局（左 Sidebar + 中主内容 + 右 Now Playing panel）
   // 移动端继续用全屏 overlay 模式
   const pcBetterStyles = betterStyles && !isMobile;
+  // 移动端 Better Styles 全屏 overlay 打开时（播放器/搜索），隐藏 top-bar 与 details-btn，避免按钮浮在 overlay 之上
+  const mobileOverlayOpen = betterStyles && isMobile && (Boolean(currentSong) || fullscreenSearchOpen);
   const openMobileLyrics = useCallback(() => {
     if (!currentSong) return;
 
@@ -678,8 +680,8 @@ export default function MusicPlayer() {
         <Sidebar currentView={currentView} onViewChange={setCurrentView} />
         
         <main className="main-content">
-          {/* PC 内联搜索打开时隐藏 top-bar（搜索/设置/菜单），避免与搜索界面重叠 */}
-          {!(pcBetterStyles && fullscreenSearchOpen) && (
+          {/* PC 内联搜索 / 移动端 overlay 打开时隐藏 top-bar（搜索/设置/菜单），避免与搜索界面或播放器重叠 */}
+          {!(pcBetterStyles && fullscreenSearchOpen) && !mobileOverlayOpen && (
           <header className="top-bar">
             {betterStyles ? (
               <button
@@ -933,7 +935,7 @@ export default function MusicPlayer() {
         onClick={() => setDetailsOpen(true)}
         type="button"
         aria-label="项目详情"
-        style={betterStyles ? { display: 'none' } : undefined}
+        style={(betterStyles || mobileOverlayOpen) ? { display: 'none' } : undefined}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3" />

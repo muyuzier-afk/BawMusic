@@ -379,6 +379,17 @@ export function usePlayer(): UsePlayerReturn {
     }
   }, []);
 
+  // 页面刷新后恢复：若 playlist/currentIndex 已从 localStorage 恢复且 audio 已就绪，
+  // 自动加载当前歌曲（暂停态），使流体背景与歌词可用，无需用户手动点播。
+  const hasRestoredRef = useRef(false);
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    if (!audioRef.current) return;
+    if (currentIndex < 0 || currentIndex >= playlist.length) return;
+    hasRestoredRef.current = true;
+    void loadSong(playlist[currentIndex], { autoPlay: false });
+  }, [currentIndex, playlist, loadSong]);
+
   const updateHistory = useCallback((song: Song) => {
     setHistoryRecords(prev => {
       const next = [song, ...prev.filter(item => item.id !== song.id)];

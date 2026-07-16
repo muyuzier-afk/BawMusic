@@ -3093,6 +3093,9 @@ body.better-styles .sidebar-item {
   min-height: 280px;
   cursor: pointer;
   position: relative;
+  /* 上下留出呼吸空间，避免 AMLL 当前歌词行贴近容器边缘被硬切；
+     AMLL 的 alignPosition(0.5) 基于容器高度对齐，上下对称 padding 不影响居中 */
+  padding: 12vh 0;
 }
 
 /* 进度条 */
@@ -3530,6 +3533,8 @@ body.better-styles .sidebar-item {
 
 .better-player--panel .better-player-lyrics {
   min-height: 0;
+  /* panel 高度小于全屏，呼吸空间相应收窄 */
+  padding: 8vh 0;
 }
 
 .better-player--panel .better-player-progress-wrap {
