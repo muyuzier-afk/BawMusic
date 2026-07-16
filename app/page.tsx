@@ -8,6 +8,7 @@ import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
+import { AmllLyrics } from '@/components/AmllLyrics';
 import { FluidBackground } from '@/components/FluidBackground';
 import { LibraryView } from '@/components/LibraryView';
 import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls';
@@ -129,6 +130,12 @@ export default function MusicPlayer() {
     setBetterStylesHydrated(true);
     setIsMobile(window.matchMedia('(max-width: 768px)').matches || typeof window.orientation !== 'undefined');
   }, []);
+
+  // Better Styles 开关同步到 body class，供全局 CSS 变量切换
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.body.classList.toggle('better-styles', betterStyles);
+  }, [betterStyles]);
 
   const handleToggleBetterStyles = useCallback(() => {
     setBetterStyles(prev => {
@@ -719,7 +726,11 @@ export default function MusicPlayer() {
                 onClick={handlePlayPageClick}
               >
               <div className="mobile-lyrics-bg" aria-hidden={!mobileLyricsOpen}>
-                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" showTranslation={showTranslation} />
+                {betterStyles ? (
+                  <AmllLyrics lyrics={lyric} currentTime={currentTime} duration={duration} playing={isPlaying} showTranslation={showTranslation} />
+                ) : (
+                  <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" showTranslation={showTranslation} />
+                )}
               </div>
 
               {isLoading && (
@@ -778,7 +789,11 @@ export default function MusicPlayer() {
               </div>
 
               <aside className="desktop-lyrics-pane">
-                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" showTranslation={showTranslation} />
+                {betterStyles ? (
+                  <AmllLyrics lyrics={lyric} currentTime={currentTime} duration={duration} playing={isPlaying} showTranslation={showTranslation} />
+                ) : (
+                  <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" showTranslation={showTranslation} />
+                )}
               </aside>
             </div>
           )}

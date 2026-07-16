@@ -2786,3 +2786,91 @@ body.immersive-shell {
     font-size: 11px;
   }
 }
+
+/* ============================
+ * Better Styles (Beta)
+ * 参考 Musish + AMLL 的视觉增强，通过 body.better-styles 全局激活
+ * ============================ */
+
+/* AMLL 歌词面板容器 */
+.amll-lyrics-wrapper {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.amll-lyrics-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 15px;
+}
+
+/* AMLL LyricPlayer 内部样式覆写：字号、字重、颜色 */
+.amll-lyrics-wrapper .amll-lyric-player {
+  --amll-lp-color: #fff;
+  --amll-lp-font-size: max(4.2vh, 2.4vw);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* 移动端歌词面板缩小 */
+.mobile-lyrics-bg .amll-lyrics-wrapper .amll-lyric-player {
+  --amll-lp-font-size: max(7vw, 18px);
+}
+
+/* Better Styles 激活时的全局微调 */
+body.better-styles {
+  --blur-amount: 90px;
+  --blur-opacity: 0.55;
+  --blur-saturate: 200%;
+}
+
+/* Better Styles 下控制栏更紧凑精致的玻璃质感 */
+body.better-styles .top-bar {
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  background: rgba(20, 20, 20, 0.42);
+}
+
+/* Better Styles 下播放主按钮加发光 */
+body.better-styles .control-btn-main {
+  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.22);
+}
+
+/* Better Styles 下专辑封面加悬浮微动 */
+body.better-styles .album-cover-clickable {
+  transition: transform 320ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+body.better-styles .album-cover-clickable:hover {
+  transform: scale(1.03);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+}
+
+/* Better Styles 下进度条更细腻 */
+body.better-styles .progress-track {
+  height: 3px;
+}
+
+body.better-styles .progress-track:hover {
+  height: 5px;
+}
+
+body.better-styles .progress-fill {
+  transition: width 80ms linear;
+}
+
+/* Better Styles 下侧边栏更紧凑 */
+body.better-styles .sidebar {
+  padding: 16px 14px;
+  gap: 4px;
+}
+
+body.better-styles .sidebar-item {
+  padding: 10px 14px;
+  font-size: 14px;
+}

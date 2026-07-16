@@ -1,7 +1,19 @@
 {
   "schemaVersion": 1,
-  "current": "65d0e7d",
+  "current": "3b8a28b",
   "versions": [
+    {
+      "sha": "3b8a28b",
+      "date": "2026-07-16T14:20:00Z",
+      "title": "Better Styles: 接入 AMLL 逐字歌词 + 视觉增强",
+      "highlights": [
+        "开启 Better Styles 后歌词切换为 AMLL LyricPlayer（Apple Music 风格逐字渐变+弹簧动画+缩放模糊）",
+        "打通逐字歌词数据流：解析网易云 klyric，LyricLine 新增 words 逐字时间戳",
+        "新增 LRC→AMLL 转换层 lib/amllLyric.ts 与 AmllLyrics 组件",
+        "桌面/移动两处歌词面板组件级切换，关闭即回退原 LyricsPanel",
+        "全局视觉微调：玻璃质感、播放键发光、封面悬浮、进度条细腻化、侧栏紧凑"
+      ]
+    },
     {
       "sha": "65d0e7d",
       "date": "2026-07-16T13:35:00Z",

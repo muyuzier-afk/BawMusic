@@ -1,4 +1,4 @@
-import { Song, MusicInfo, LyricData, AudioQuality } from '@/types/music';
+import { Song, MusicInfo, LyricData, AudioQuality, LyricLine, LyricWord } from '@/types/music';
 import { normalizeMediaUrl } from '@/lib/media';
 import { useSyncExternalStore } from 'react';
 
@@ -627,7 +627,62 @@ function parseTimedLyric(lrc: string): { time: number; text: string }[] {
   return result.sort((a, b) => a.time - b.time);
 }
 
-export function parseLyric(lrc: string, tlyric = ''): { time: number; text: string; translation?: string }[] {
+/**
+ * 解析网易云逐字歌词（klyric）格式：`[mm:ss.ms]词[mm:ss.ms]词...`
+ * 返回每行的 { time, words[] }，time 为行首时间（秒），words 时间也为秒
+ */
+function parseKlyric(klyric: string): Map<string, { time: number; words: LyricWord[] }> {
+  const result = new Map<string, { time: number; words: LyricWord[] }>();
+  if (typeof klyric !== 'string' || klyric.length === 0) return result;
+
+  const timeRegex = /\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
+  const lines = klyric.split(/\r?\n/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // 逐字行：以时间标签开头，后续是 "词[时间]词[时间]..." 的交错结构
+    const firstMatch = timeRegex.exec(trimmed);
+    if (!firstMatch) continue;
+    timeRegex.lastIndex = 0;
+
+    // 收集所有 [time] 位置
+    const stamps: { time: number; index: number }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = timeRegex.exec(trimmed)) !== null) {
+      const minutes = parseInt(m[1], 10);
+      const seconds = parseInt(m[2], 10);
+      const msRaw = m[3] || '0';
+      const ms = parseInt(msRaw.padEnd(3, '0').slice(0, 3), 10);
+      stamps.push({ time: minutes * 60 + seconds + ms / 1000, index: m.index + m[0].length });
+    }
+    if (stamps.length === 0) continue;
+
+    const words: LyricWord[] = [];
+    for (let i = 0; i < stamps.length; i++) {
+      const start = stamps[i].time;
+      const textStart = stamps[i].index;
+      const textEnd = i + 1 < stamps.length ? stamps[i + 1].index - stamps[i + 1].time.toString().length : trimmed.length;
+      // 实际上 textEnd 应取下一个时间标签的起始位置（含 [）
+      const nextTagStart = i + 1 < stamps.length
+        ? trimmed.lastIndexOf('[', stamps[i + 1].index - 1)
+        : trimmed.length;
+      const wordText = trimmed.slice(textStart, nextTagStart >= textStart ? nextTagStart : trimmed.length).trim();
+      if (!wordText) continue;
+      const end = i + 1 < stamps.length ? stamps[i + 1].time : start + 1;
+      words.push({ startTime: start, endTime: end, word: wordText });
+    }
+
+    if (words.length === 0) continue;
+    const lineTime = words[0].startTime;
+    result.set(lineTime.toFixed(3), { time: lineTime, words });
+  }
+
+  return result;
+}
+
+export function parseLyric(lrc: string, tlyric = '', klyric = ''): LyricLine[] {
   if (typeof lrc !== 'string' || lrc.length === 0) return [];
 
   const lyricLines = parseTimedLyric(lrc);
@@ -636,12 +691,15 @@ export function parseLyric(lrc: string, tlyric = ''): { time: number; text: stri
   const translationMap = new Map(
     parseTimedLyric(tlyric).map((line) => [line.time.toFixed(3), line.text])
   );
+  const klyricMap = parseKlyric(klyric);
 
   return lyricLines.map((line) => {
     const translation = translationMap.get(line.time.toFixed(3));
+    const klyricLine = klyricMap.get(line.time.toFixed(3));
     return {
       ...line,
-      translation: translation && translation !== line.text ? translation : undefined
+      translation: translation && translation !== line.text ? translation : undefined,
+      words: klyricLine?.words,
     };
   });
 }

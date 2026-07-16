@@ -354,7 +354,7 @@ export function usePlayer(): UsePlayerReturn {
       try {
         const lyricData = await getLyric(song.id);
         if (requestId !== loadRequestRef.current) return;
-        setLyric(parseLyric(lyricData.lrc || '', lyricData.tlyric || ''));
+        setLyric(parseLyric(lyricData.lrc || '', lyricData.tlyric || '', lyricData.klyric || ''));
       } catch {
         if (requestId !== loadRequestRef.current) return;
         setLyric([]);
