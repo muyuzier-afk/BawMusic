@@ -13,6 +13,7 @@ import { FullScreenSearch } from '@/components/FullScreenSearch';
 import { FluidBackground } from '@/components/FluidBackground';
 import { LibraryView } from '@/components/LibraryView';
 import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls';
+import { BetterPlaylistSheet } from '@/components/BetterPlaylistSheet';
 import { DownloadMenu } from '@/components/DownloadMenu';
 import { Sidebar } from '@/components/Sidebar';
 import { Song, AudioQuality } from '@/types/music';
@@ -886,19 +887,37 @@ export default function MusicPlayer() {
         )}
       </div>
 
-      <PlaylistDrawer
-        isOpen={playlistOpen}
-        onClose={() => setPlaylistOpen(false)}
-        playlist={playlist}
-        currentIndex={currentIndex}
-        onPlayAt={playAt}
-        onMoveItem={movePlaylistItem}
-        onRemoveItem={removePlaylistItem}
-        onClearPlaylist={clearPlaylist}
-        onRemoveItems={removePlaylistItems}
-        onImport={() => setImportOpen(true)}
-        onExport={handleExportPlaylist}
-      />
+      {/* Better Styles 移动端：使用新的待播列表 Sheet；其余情况用原 PlaylistDrawer */}
+      {betterStyles && isMobile ? (
+        <BetterPlaylistSheet
+          isOpen={playlistOpen}
+          onClose={() => setPlaylistOpen(false)}
+          playlist={playlist}
+          currentIndex={currentIndex}
+          onPlayAt={playAt}
+          onMoveItem={movePlaylistItem}
+          onRemoveItem={removePlaylistItem}
+          onClearPlaylist={clearPlaylist}
+          onRemoveItems={removePlaylistItems}
+          onImport={() => setImportOpen(true)}
+          currentSong={currentSong}
+          isPlaying={isPlaying}
+        />
+      ) : (
+        <PlaylistDrawer
+          isOpen={playlistOpen}
+          onClose={() => setPlaylistOpen(false)}
+          playlist={playlist}
+          currentIndex={currentIndex}
+          onPlayAt={playAt}
+          onMoveItem={movePlaylistItem}
+          onRemoveItem={removePlaylistItem}
+          onClearPlaylist={clearPlaylist}
+          onRemoveItems={removePlaylistItems}
+          onImport={() => setImportOpen(true)}
+          onExport={handleExportPlaylist}
+        />
+      )}
 
       <DownloadMenu
         isOpen={downloadMenuOpen}
