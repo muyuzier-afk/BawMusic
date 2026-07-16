@@ -951,7 +951,9 @@ body.immersive-shell {
 .details-btn {
   border: 1px solid var(--color-border);
   border-radius: 50%;
-  background: rgba(20, 20, 20, 0.45);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   color: rgba(255, 255, 255, 0.92);
   width: 40px;
   height: 40px;
@@ -965,7 +967,7 @@ body.immersive-shell {
 
 .details-btn:hover {
   transform: none;
-  background: rgba(28, 28, 28, 0.62);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .details-btn-desktop-fixed {
