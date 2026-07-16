@@ -44,12 +44,14 @@ interface BetterPlayerProps {
   onDownload: (event: ReactMouseEvent<HTMLElement>) => void;
   showDownload: boolean;
   isLoading?: boolean;
+  /** 渲染模式：fullscreen=移动端全屏覆盖；panel=PC 端右侧常驻面板 */
+  variant?: 'fullscreen' | 'panel';
 }
 
 /**
- * Better Styles 全屏播放界面：参考 Apple Music 视觉，大封面+居中信息+底部控件。
- * - 顶部下拉箭头收起为迷你播放器（fixed 浮在主内容之上）
- * - 封面/信息区点击切换为 AMLL 歌词视图
+ * Better Styles 播放界面。
+ * - fullscreen：移动端全屏，顶部下拉箭头收起为迷你播放器，封面/信息点击切换 AMLL 歌词
+ * - panel：PC 端右侧常驻面板，填充父容器，无收起箭头，垂直排布封面/歌词/控件
  */
 export function BetterPlayer({
   song,
@@ -74,7 +76,9 @@ export function BetterPlayer({
   onDownload,
   showDownload,
   isLoading = false,
+  variant = 'fullscreen',
 }: BetterPlayerProps) {
+  const isPanel = variant === 'panel';
   const [view, setView] = useState<'cover' | 'lyrics'>('cover');
   const [minimized, setMinimized] = useState(false);
 
@@ -164,8 +168,8 @@ export function BetterPlayer({
   // 封面图源
   const coverUrl = useMemo(() => normalizeMediaUrl(song.picUrl) || PLACEHOLDER_COVER, [song.picUrl]);
 
-  // 收起态：迷你播放器（固定在底部）
-  if (minimized) {
+  // 收起态：迷你播放器（固定在底部）— 仅 fullscreen 模式可用
+  if (minimized && !isPanel) {
     return (
       <div
         className="better-player-mini"
@@ -221,21 +225,23 @@ export function BetterPlayer({
   }
 
   return (
-    <div className="better-player">
+    <div className={`better-player${isPanel ? ' better-player--panel' : ''}`}>
       <div className="better-player-bg" aria-hidden="true" />
 
-      <div className="better-player-topbar">
-        <button
-          className="better-player-chevron"
-          onClick={toggleMinimize}
-          aria-label="收起播放器"
-          type="button"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-      </div>
+      {!isPanel && (
+        <div className="better-player-topbar">
+          <button
+            className="better-player-chevron"
+            onClick={toggleMinimize}
+            aria-label="收起播放器"
+            type="button"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       <div className="better-player-content">
         {view === 'cover' ? (

@@ -117,7 +117,11 @@ export default function MusicPlayer() {
     return (window as any).__BAW_INIT__?.liquidFlow === true;
   });
   const [liquidFlowHydrated, setLiquidFlowHydrated] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  // 是否移动端：惰性初始化同步读取媒体查询，避免 PC 三栏/移动 overlay 闪现
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 768px)').matches || typeof window.orientation !== 'undefined';
+  });
   // Better Styles (Beta)：样式增强开关
   // 初始值优先读取内联脚本注入的 window.__BAW_INIT__，避免首屏闪现 Old UI
   const [betterStyles, setBetterStyles] = useState(() => {
@@ -137,7 +141,14 @@ export default function MusicPlayer() {
     } catch { /* ignore */ }
     setLiquidFlowHydrated(true);
     setBetterStylesHydrated(true);
-    setIsMobile(window.matchMedia('(max-width: 768px)').matches || typeof window.orientation !== 'undefined');
+    const computeMobile = () =>
+      window.matchMedia('(max-width: 768px)').matches || typeof window.orientation !== 'undefined';
+    setIsMobile(computeMobile());
+    // 窗口尺寸变化时重新判定 PC 三栏 / 移动 overlay
+    const mql = window.matchMedia('(max-width: 768px)');
+    const handleChange = () => setIsMobile(computeMobile());
+    mql.addEventListener?.('change', handleChange);
+    return () => mql.removeEventListener?.('change', handleChange);
   }, []);
 
   // Better Styles 开关同步到 body class，供全局 CSS 变量切换
@@ -558,6 +569,9 @@ export default function MusicPlayer() {
   }, [currentSong, showNotice]);
   
   const showPlayer = currentSong !== null;
+  // PC Better Styles：启用三栏布局（左 Sidebar + 中主内容 + 右 Now Playing panel）
+  // 移动端继续用全屏 overlay 模式
+  const pcBetterStyles = betterStyles && !isMobile;
   const openMobileLyrics = useCallback(() => {
     if (!currentSong) return;
 
@@ -699,8 +713,19 @@ export default function MusicPlayer() {
               <ListIcon size={22} />
             </button>
           </header>
-          
-          {currentView === 'library' && (
+
+          {/* PC Better Styles：内联搜索作为中栏内容（替代移动端 overlay） */}
+          {pcBetterStyles && fullscreenSearchOpen && (
+            <FullScreenSearch
+              inline
+              onSongSelect={handlePlaySong}
+              onClose={() => setFullscreenSearchOpen(false)}
+              limit={30}
+            />
+          )}
+
+          {/* PC 内联搜索打开时，中栏其余内容隐藏 */}
+          {!(pcBetterStyles && fullscreenSearchOpen) && currentView === 'library' && (
             <div className="library-page">
               <div className="library-scroll">
                 <LibraryView
@@ -816,19 +841,48 @@ export default function MusicPlayer() {
             </div>
           )}
 
-          {currentView === 'discover' && !currentSong && betterStyles && (
+          {currentView === 'discover' && betterStyles && !fullscreenSearchOpen && (
             <div className="empty-state">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M9 18V5l12-2v13" />
                 <circle cx="6" cy="18" r="3" />
                 <circle cx="18" cy="16" r="3" />
               </svg>
-              <span style={{ fontSize: '18px' }}>搜索歌曲，开始播放</span>
+              <span style={{ fontSize: '18px' }}>{currentSong ? '点击右上角搜索，发现更多音乐' : '搜索歌曲，开始播放'}</span>
             </div>
           )}
         </main>
+
+        {/* PC Better Styles：右侧常驻 Now Playing 面板 */}
+        {pcBetterStyles && currentSong && (
+          <BetterPlayer
+            song={currentSong}
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            duration={duration}
+            volume={volume}
+            playMode={playMode}
+            audioQuality={audioQuality}
+            lyric={lyric}
+            showTranslation={showTranslation}
+            hasTranslation={hasTranslation}
+            onTogglePlay={togglePlay}
+            onNext={playNext}
+            onPrev={playPrev}
+            onSeek={seek}
+            onVolumeChange={setVolume}
+            onCyclePlayMode={cyclePlayMode}
+            onAudioQualityChange={setAudioQuality}
+            onToggleTranslation={handleToggleTranslation}
+            onOpenPlaylist={() => setPlaylistOpen(true)}
+            onDownload={handleDownloadClick}
+            showDownload={Boolean(currentSong)}
+            isLoading={isLoading}
+            variant="panel"
+          />
+        )}
       </div>
-      
+
       <PlaylistDrawer
         isOpen={playlistOpen}
         onClose={() => setPlaylistOpen(false)}
@@ -1374,7 +1428,8 @@ export default function MusicPlayer() {
         </div>
       )}
 
-      {betterStyles && currentSong && (
+      {/* 移动端 Better Styles：全屏播放器 overlay（PC 端使用右侧 panel） */}
+      {betterStyles && isMobile && currentSong && (
         <BetterPlayer
           song={currentSong}
           isPlaying={isPlaying}
@@ -1398,10 +1453,12 @@ export default function MusicPlayer() {
           onDownload={handleDownloadClick}
           showDownload={Boolean(currentSong)}
           isLoading={isLoading}
+          variant="fullscreen"
         />
       )}
 
-      {betterStyles && fullscreenSearchOpen && (
+      {/* 移动端 Better Styles：全屏搜索 overlay（PC 端使用中栏内联） */}
+      {betterStyles && isMobile && fullscreenSearchOpen && (
         <FullScreenSearch
           onSongSelect={handlePlaySong}
           onClose={() => setFullscreenSearchOpen(false)}

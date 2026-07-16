@@ -12,12 +12,16 @@ interface FullScreenSearchProps {
   onClose: () => void;
   /** 搜索结果条数 */
   limit?: number;
+  /** 内联模式：PC 端作为左栏内容嵌入，不使用 fixed overlay */
+  inline?: boolean;
 }
 
 /**
- * Better Styles 全屏搜索：覆盖整个视口，结果以网格展示，支持更多结果。
+ * Better Styles 搜索：结果以网格展示，支持更多结果。
+ * - 默认（overlay）：覆盖整个视口
+ * - inline：PC 端作为左栏内容嵌入，不用 fixed 定位
  */
-export function FullScreenSearch({ onSongSelect, onClose, limit = 30 }: FullScreenSearchProps) {
+export function FullScreenSearch({ onSongSelect, onClose, limit = 30, inline = false }: FullScreenSearchProps) {
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,16 +92,18 @@ export function FullScreenSearch({ onSongSelect, onClose, limit = 30 }: FullScre
   };
 
   return (
-    <div className="fullscreen-search" role="dialog" aria-modal="true">
+    <div className={`fullscreen-search${inline ? ' fullscreen-search--inline' : ''}`} role={inline ? undefined : 'dialog'} aria-modal={inline ? undefined : true}>
       <div className="fullscreen-search-header">
-        <button
-          className="fullscreen-search-close"
-          onClick={onClose}
-          type="button"
-          aria-label="关闭搜索"
-        >
-          <CloseIcon size={22} />
-        </button>
+        {!inline && (
+          <button
+            className="fullscreen-search-close"
+            onClick={onClose}
+            type="button"
+            aria-label="关闭搜索"
+          >
+            <CloseIcon size={22} />
+          </button>
+        )}
         <div className="fullscreen-search-input-wrap">
           <span className="fullscreen-search-icon">
             <SearchIcon size={20} />
@@ -119,6 +125,16 @@ export function FullScreenSearch({ onSongSelect, onClose, limit = 30 }: FullScre
             <div className="fullscreen-search-spinner" aria-hidden="true" />
           )}
         </div>
+        {inline && (
+          <button
+            className="fullscreen-search-close"
+            onClick={onClose}
+            type="button"
+            aria-label="关闭搜索"
+          >
+            <CloseIcon size={22} />
+          </button>
+        )}
       </div>
 
       <div className="fullscreen-search-body">
