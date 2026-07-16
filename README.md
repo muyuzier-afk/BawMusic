@@ -112,4 +112,11 @@ scripts/patch-capacitor-java17.js   postinstall 钩子
 
 ## License
 
-MIT
+本项目基于 [GNU AGPL-3.0-or-later](./LICENSE) 协议开源。
+
+因项目使用了 [@applemusic-like-lyrics/react](https://github.com/amll-dev/applemusic-like-lyrics)（AGPL-3.0-only，具有传染性），故整体协议采用 AGPL-3.0。这意味着：
+
+- 任何人可以自由使用、修改、分发本项目，但衍生作品必须同样以 AGPL-3.0 协议开源
+- 若以网络服务形式提供本程序（或修改版）的功能，也必须向用户提供完整源代码
+
+**上游仓库：** [amll-dev/applemusic-like-lyrics](https://github.com/amll-dev/applemusic-like-lyrics) — 本项目的流体背景与歌词组件基于其 `BackgroundRender` / `LyricPlayer` 实现。
