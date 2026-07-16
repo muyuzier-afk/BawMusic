@@ -1,7 +1,23 @@
 {
   "schemaVersion": 1,
-  "current": "6bfc333",
+  "current": "f58ba9a",
   "versions": [
+    {
+      "sha": "f58ba9a",
+      "date": "2026-07-16T17:00:00Z",
+      "title": "Better Styles 播放器优化 + 移除源切换",
+      "highlights": [
+        "封面无圆角、正方形不裁剪（自然尺寸展示）",
+        "歌名与歌手居左对齐",
+        "音质选择文字居中",
+        "去掉播放键旁边的小圆球（prev/next 不再圆形背景）",
+        "BetterPlayer 背景透明，露出原流体背景",
+        "Better Styles 模式播放界面不放搜索框，改为搜索按钮",
+        "Better Styles 模式隐藏右上角设置入口（播放界面已有菜单逻辑）",
+        "新增全屏搜索（FullScreenSearch），网格展示，结果上限 30",
+        "移除 MAIN/Backup 源切换，固定使用 main 源"
+      ]
+    },
     {
       "sha": "6bfc333",
       "date": "2026-07-16T16:00:00Z",

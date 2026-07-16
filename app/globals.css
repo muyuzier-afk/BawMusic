@@ -2876,14 +2876,14 @@ body.better-styles .sidebar-item {
  * 模仿 Apple Music 风格：大封面+居中信息+底部控件
  * ============================ */
 
-/* 容器：全屏 fixed 覆盖在主布局之上 */
+/* 容器：全屏 fixed 覆盖在主布局之上，背景透明以露出流体背景 */
 .better-player {
   position: fixed;
   inset: 0;
   z-index: 60;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #6c6f7c 0%, #585b66 40%, #3a3c45 100%);
+  background: transparent;
   color: #fff;
   overflow: hidden;
   animation: better-player-fade-in 320ms ease;
@@ -2898,7 +2898,7 @@ body.better-styles .sidebar-item {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.08), transparent 60%);
+  background: transparent;
   pointer-events: none;
 }
 
@@ -2938,19 +2938,16 @@ body.better-styles .sidebar-item {
   align-items: center;
   justify-content: center;
   padding: 20px 28px;
-  gap: 28px;
+  gap: 20px;
 }
 
 .better-player-cover-wrap {
   width: min(100%, 360px);
-  aspect-ratio: 1 / 1;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
   position: relative;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   transition: transform var(--transition-fast);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
 .better-player-cover-wrap:hover {
@@ -2959,8 +2956,7 @@ body.better-styles .sidebar-item {
 
 .better-player-cover {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
   transition: opacity var(--transition-fast);
 }
@@ -2988,10 +2984,11 @@ body.better-styles .sidebar-item {
 }
 
 .better-player-info {
-  text-align: center;
+  text-align: left;
   cursor: pointer;
   width: 100%;
   max-width: 360px;
+  align-self: center;
 }
 
 .better-player-title {
@@ -3079,13 +3076,11 @@ body.better-styles .sidebar-item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: transform var(--transition-fast), background var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .better-player-control-btn:hover {
   transform: scale(1.06);
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .better-player-control-btn:active {
@@ -3093,14 +3088,16 @@ body.better-styles .sidebar-item {
 }
 
 .better-player-play {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
   width: 76px;
   height: 76px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
 .better-player-play:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
 }
 
 /* 额外控件：模式、翻译、音质 */
@@ -3148,6 +3145,8 @@ body.better-styles .sidebar-item {
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
+  text-align: center;
+  text-align-last: center;
 }
 
 .better-player-quality-select option {
@@ -3418,5 +3417,219 @@ body.better-styles .sidebar-item {
 
   .better-player-progress-wrap {
     padding: 0 22px 12px;
+  }
+}
+
+/* ============================
+ * Better Styles 全屏搜索
+ * ============================ */
+.fullscreen-search {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  color: #fff;
+  animation: fullscreen-search-in 240ms ease;
+}
+
+@keyframes fullscreen-search-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fullscreen-search-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.fullscreen-search-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.fullscreen-search-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.fullscreen-search-input-wrap {
+  flex: 1;
+  position: relative;
+  max-width: 720px;
+}
+
+.fullscreen-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  display: inline-flex;
+  pointer-events: none;
+}
+
+.fullscreen-search-input {
+  width: 100%;
+  padding: 12px 44px 12px 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.fullscreen-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.fullscreen-search-input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.fullscreen-search-spinner {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: better-player-spin 700ms linear infinite;
+}
+
+.fullscreen-search-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 28px 40px;
+}
+
+.fullscreen-search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  height: 100%;
+  min-height: 240px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 15px;
+}
+
+.fullscreen-search-spinner-lg {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: better-player-spin 700ms linear infinite;
+}
+
+.fullscreen-search-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.fullscreen-search-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  transition: transform var(--transition-fast);
+}
+
+.fullscreen-search-item:hover {
+  transform: translateY(-2px);
+}
+
+.fullscreen-search-item:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.fullscreen-search-item-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  display: block;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.fullscreen-search-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fullscreen-search-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fullscreen-search-item-artist {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .fullscreen-search-header {
+    padding: 14px 16px;
+    gap: 8px;
+  }
+
+  .fullscreen-search-input {
+    padding: 10px 40px 10px 44px;
+    font-size: 15px;
+  }
+
+  .fullscreen-search-body {
+    padding: 16px;
+  }
+
+  .fullscreen-search-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 16px;
   }
 }

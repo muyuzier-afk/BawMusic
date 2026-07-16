@@ -1,0 +1,172 @@
+'use client';
+
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Song } from '@/types/music';
+import { searchSongs } from '@/lib/api';
+import { normalizeMediaUrl } from '@/lib/media';
+import { PLACEHOLDER_COVER } from '@/lib/cover';
+import { SearchIcon, CloseIcon } from './Icons';
+
+interface FullScreenSearchProps {
+  onSongSelect: (song: Song) => void;
+  onClose: () => void;
+  /** 搜索结果条数 */
+  limit?: number;
+}
+
+/**
+ * Better Styles 全屏搜索：覆盖整个视口，结果以网格展示，支持更多结果。
+ */
+export function FullScreenSearch({ onSongSelect, onClose, limit = 30 }: FullScreenSearchProps) {
+  const [keyword, setKeyword] = useState('');
+  const [results, setResults] = useState<Song[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const search = useCallback(async (query: string) => {
+    const currentRequestId = ++requestIdRef.current;
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      setSearched(false);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const list = await searchSongs(q, limit);
+      if (currentRequestId !== requestIdRef.current) return;
+      setResults(list);
+      setSearched(true);
+    } catch {
+      if (currentRequestId !== requestIdRef.current) return;
+      setResults([]);
+      setSearched(true);
+    } finally {
+      if (currentRequestId !== requestIdRef.current) return;
+      setIsLoading(false);
+    }
+  }, [limit]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setKeyword(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim()) {
+      requestIdRef.current += 1;
+      setResults([]);
+      setSearched(false);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    debounceRef.current = setTimeout(() => search(value), 320);
+  };
+
+  const handleSelect = (song: Song) => {
+    onSongSelect(song);
+    onClose();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose();
+    } else if (e.key === 'Enter' && results.length > 0) {
+      handleSelect(results[0]);
+    }
+  };
+
+  return (
+    <div className="fullscreen-search" role="dialog" aria-modal="true">
+      <div className="fullscreen-search-header">
+        <button
+          className="fullscreen-search-close"
+          onClick={onClose}
+          type="button"
+          aria-label="关闭搜索"
+        >
+          <CloseIcon size={22} />
+        </button>
+        <div className="fullscreen-search-input-wrap">
+          <span className="fullscreen-search-icon">
+            <SearchIcon size={20} />
+          </span>
+          <input
+            ref={inputRef}
+            type="search"
+            className="fullscreen-search-input"
+            placeholder="搜索歌曲、歌手、专辑..."
+            value={keyword}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+          {isLoading && (
+            <div className="fullscreen-search-spinner" aria-hidden="true" />
+          )}
+        </div>
+      </div>
+
+      <div className="fullscreen-search-body">
+        {!searched && !isLoading && (
+          <div className="fullscreen-search-empty">
+            <SearchIcon size={48} />
+            <span>输入关键词开始搜索</span>
+          </div>
+        )}
+        {searched && !isLoading && results.length === 0 && (
+          <div className="fullscreen-search-empty">
+            <span>没有找到「{keyword}」的相关结果</span>
+          </div>
+        )}
+        {isLoading && results.length === 0 && (
+          <div className="fullscreen-search-empty">
+            <div className="fullscreen-search-spinner-lg" aria-hidden="true" />
+            <span>搜索中...</span>
+          </div>
+        )}
+        {results.length > 0 && (
+          <div className="fullscreen-search-grid">
+            {results.map((song) => (
+              <button
+                key={song.id}
+                className="fullscreen-search-item"
+                onClick={() => handleSelect(song)}
+                type="button"
+              >
+                <img
+                  src={normalizeMediaUrl(song.picUrl) || PLACEHOLDER_COVER}
+                  alt={song.name}
+                  className="fullscreen-search-item-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    if (e.currentTarget.src !== PLACEHOLDER_COVER) {
+                      e.currentTarget.src = PLACEHOLDER_COVER;
+                    }
+                  }}
+                />
+                <div className="fullscreen-search-item-info">
+                  <div className="fullscreen-search-item-title">{song.name}</div>
+                  <div className="fullscreen-search-item-artist">{song.artists}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

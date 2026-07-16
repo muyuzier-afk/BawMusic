@@ -9,18 +9,18 @@ import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
 import { BetterPlayer } from '@/components/BetterPlayer';
+import { FullScreenSearch } from '@/components/FullScreenSearch';
 import { FluidBackground } from '@/components/FluidBackground';
 import { LibraryView } from '@/components/LibraryView';
 import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls';
-import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { DownloadMenu } from '@/components/DownloadMenu';
 import { Sidebar } from '@/components/Sidebar';
 import { Song, AudioQuality } from '@/types/music';
-import { ListIcon, ImportIcon, UploadIcon } from '@/components/Icons';
+import { ListIcon, ImportIcon, UploadIcon, SearchIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
-import { fetchPlaylist, extractPlaylistId, setApiSource, useApiSource, type ApiSource } from '@/lib/api';
+import { fetchPlaylist, extractPlaylistId } from '@/lib/api';
 import buildInfo from '@/lib/build-info.json';
 import versionsData from '@/versions.json';
 import type { BuildInfo, VersionsFile } from '@/lib/build-info-types';
@@ -69,7 +69,7 @@ export default function MusicPlayer() {
     setPlaybackScope
   } = usePlayer();
 
-  const apiSource = useApiSource();
+  const apiSource = 'main';
   const {
     folders,
     createFolder,
@@ -96,6 +96,7 @@ export default function MusicPlayer() {
   const [importBusy, setImportBusy] = useState(false);
   const [importJsonBusy, setImportJsonBusy] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
+  const [fullscreenSearchOpen, setFullscreenSearchOpen] = useState(false);
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -499,14 +500,9 @@ export default function MusicPlayer() {
     [importJsonBusy, showNotice, clearPlaylist, addToPlaylist]
   );
 
-  const handleChangeApiSource = useCallback((source: ApiSource) => {
-    if (source === apiSource) return;
-    setApiSource(source);
-    showNotice(`已切换至 ${source === 'main' ? 'MAIN' : 'BACKUP'} 源`);
-    if (currentSong) {
-      reFetchCurrentSong();
-    }
-  }, [apiSource, currentSong, reFetchCurrentSong, showNotice]);
+  const handleChangeApiSource = useCallback((_source: 'main' | 'backup') => {
+    // 源切换已移除，固定使用 main
+  }, []);
 
   useEffect(() => {
     if (!currentSong) {
@@ -654,16 +650,21 @@ export default function MusicPlayer() {
         
         <main className="main-content">
           <header className="top-bar">
-            <SearchBar
-              onSongSelect={handlePlaySong}
-              localSource={currentView === 'library' ? playlist : undefined}
-            />
-            <SourceSwitcher
-              value={apiSource}
-              onChange={handleChangeApiSource}
-              size="compact"
-              className="top-bar-source-switcher"
-            />
+            {betterStyles ? (
+              <button
+                className="icon-btn"
+                onClick={() => setFullscreenSearchOpen(true)}
+                type="button"
+                aria-label="搜索音乐"
+              >
+                <SearchIcon size={20} />
+              </button>
+            ) : (
+              <SearchBar
+                onSongSelect={handlePlaySong}
+                localSource={currentView === 'library' ? playlist : undefined}
+              />
+            )}
             <button
               className="details-btn details-btn-mobile-inline"
               onClick={() => setDetailsOpen(true)}
@@ -842,6 +843,7 @@ export default function MusicPlayer() {
         onClick={() => setDetailsOpen(true)}
         type="button"
         aria-label="项目详情"
+        style={betterStyles ? { display: 'none' } : undefined}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3" />
@@ -1382,6 +1384,14 @@ export default function MusicPlayer() {
           onDownload={handleDownloadClick}
           showDownload={Boolean(currentSong)}
           isLoading={isLoading}
+        />
+      )}
+
+      {betterStyles && fullscreenSearchOpen && (
+        <FullScreenSearch
+          onSongSelect={handlePlaySong}
+          onClose={() => setFullscreenSearchOpen(false)}
+          limit={30}
         />
       )}
     </div>
