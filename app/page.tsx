@@ -677,6 +677,8 @@ export default function MusicPlayer() {
         <Sidebar currentView={currentView} onViewChange={setCurrentView} />
         
         <main className="main-content">
+          {/* PC 内联搜索打开时隐藏 top-bar（搜索/设置/菜单），避免与搜索界面重叠 */}
+          {!(pcBetterStyles && fullscreenSearchOpen) && (
           <header className="top-bar">
             {betterStyles ? (
               <button
@@ -713,6 +715,7 @@ export default function MusicPlayer() {
               <ListIcon size={22} />
             </button>
           </header>
+          )}
 
           {/* PC Better Styles：内联搜索作为中栏内容（替代移动端 overlay） */}
           {pcBetterStyles && fullscreenSearchOpen && (
@@ -841,14 +844,14 @@ export default function MusicPlayer() {
             </div>
           )}
 
-          {currentView === 'discover' && betterStyles && !fullscreenSearchOpen && (
+          {currentView === 'discover' && betterStyles && !fullscreenSearchOpen && !currentSong && (
             <div className="empty-state">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M9 18V5l12-2v13" />
                 <circle cx="6" cy="18" r="3" />
                 <circle cx="18" cy="16" r="3" />
               </svg>
-              <span style={{ fontSize: '18px' }}>{currentSong ? '点击右上角搜索，发现更多音乐' : '搜索歌曲，开始播放'}</span>
+              <span style={{ fontSize: '18px' }}>点击左上角搜索，开始播放</span>
             </div>
           )}
         </main>
