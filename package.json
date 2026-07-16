@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@applemusic-like-lyrics/react": "^0.5.2",
+    "@applemusic-like-lyrics/react-full": "^0.4.2",
     "@capacitor/app": "^8.1.0",
     "@capacitor/core": "^8.3.1",
     "@capacitor/status-bar": "^8.0.2",
@@ -34,6 +35,7 @@
     "@pixi/filter-color-matrix": "^7.4.3",
     "@pixi/sprite": "^7.4.3",
     "capacitor-music-controls-plugin": "^6.1.0",
+    "jotai": "^2.20.2",
     "jss": "^10.10.0",
     "jss-preset-default": "^10.10.0",
     "next": "16.2.4",
