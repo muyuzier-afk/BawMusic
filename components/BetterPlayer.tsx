@@ -85,11 +85,8 @@ export function BetterPlayer({
   const [view, setView] = useState<'cover' | 'lyrics'>('cover');
   const [minimized, setMinimized] = useState(false);
 
-  // 切换歌曲时重置为封面视图
+  // 切歌时保留当前视图：若在歌词界面切歌，直接展示下一首/上一首的歌词，不跳回封面
   const songId = song?.id;
-  useEffect(() => {
-    setView('cover');
-  }, [songId]);
 
   const toggleView = useCallback(() => {
     setView((prev) => (prev === 'cover' ? 'lyrics' : 'cover'));
