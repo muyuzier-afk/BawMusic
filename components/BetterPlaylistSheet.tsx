@@ -299,10 +299,7 @@ export function BetterPlaylistSheet({
                   key={`${song.id}-${index}`}
                   className={`bps-item-row ${swipingIndex === index ? 'swiping' : ''} ${swipingIndex === index && swipeOffset <= -64 ? 'armed' : ''}`}
                 >
-                  <div className="bps-item-delete" aria-hidden="true">
-                    <TrashIcon size={16} />
-                    <span className="bps-item-delete-text">删除</span>
-                  </div>
+                  <div className="bps-item-delete" aria-hidden="true" />
                   <div
                     data-index={index}
                     className={`bps-item ${isActive ? 'active' : ''} ${draggingIndex === index ? 'dragging' : ''} ${isSelected ? 'selected' : ''}`}

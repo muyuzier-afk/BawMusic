@@ -4114,25 +4114,15 @@ body.better-styles .sidebar-item {
   overflow: hidden;
 }
 
-/* 删除底色：固定宽度贴右，避免与卡片内容/播放指示器大面积重叠 */
+/* 删除底色：纯色底，滑动时露出作为视觉反馈（无按钮/图标，符合滑动删除交互） */
 .bps-item-delete {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   width: 96px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
   background: rgba(80, 80, 88, 0.96);
-  color: rgba(255, 255, 255, 0.95);
   border-radius: 14px;
-}
-
-.bps-item-delete-text {
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .bps-item-row.swiping .bps-item {
@@ -4149,8 +4139,8 @@ body.better-styles .sidebar-item {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: 14px;
+  padding: 12px 14px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
@@ -4201,14 +4191,14 @@ body.better-styles .sidebar-item {
 .bps-item-cover-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
 }
 
 .bps-item-cover {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
   object-fit: cover;
   display: block;
   background: rgba(255, 255, 255, 0.06);
@@ -4249,7 +4239,7 @@ body.better-styles .sidebar-item {
 }
 
 .bps-item-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
   overflow: hidden;
