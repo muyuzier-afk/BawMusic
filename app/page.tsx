@@ -109,16 +109,30 @@ export default function MusicPlayer() {
   const [liquidFlow, setLiquidFlow] = useState(false);
   const [liquidFlowHydrated, setLiquidFlowHydrated] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  // Better Styles (Beta)：样式增强开关，具体功能待实现
+  const [betterStyles, setBetterStyles] = useState(false);
+  const [betterStylesHydrated, setBetterStylesHydrated] = useState(false);
 
-  // 读取 LiquidFlow 持久化状态 + 检测移动端
+  // 读取 LiquidFlow / Better Styles 持久化状态 + 检测移动端
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const stored = window.localStorage.getItem('bawmusic:liquid-flow');
       if (stored === '1') setLiquidFlow(true);
+      const storedBs = window.localStorage.getItem('bawmusic:better-styles');
+      if (storedBs === '1') setBetterStyles(true);
     } catch { /* ignore */ }
     setLiquidFlowHydrated(true);
+    setBetterStylesHydrated(true);
     setIsMobile(window.matchMedia('(max-width: 768px)').matches || typeof window.orientation !== 'undefined');
+  }, []);
+
+  const handleToggleBetterStyles = useCallback(() => {
+    setBetterStyles(prev => {
+      const next = !prev;
+      try { window.localStorage.setItem('bawmusic:better-styles', next ? '1' : '0'); } catch { /* ignore */ }
+      return next;
+    });
   }, []);
 
   const { offsetX, offsetY, requestPermission, supported: orientationSupported } = useDeviceOrientation({
@@ -743,9 +757,8 @@ export default function MusicPlayer() {
         aria-label="项目详情"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <line x1="12" y1="8" x2="12" y2="13" />
-          <circle cx="12" cy="16.5" r="1" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
         </svg>
       </button>
 
@@ -888,6 +901,18 @@ export default function MusicPlayer() {
                 >
                   <span className="about-mini-toggle-label">LiquidFlow Styles</span>
                   <span className={`about-mini-toggle-switch ${liquidFlow ? 'on' : ''}`} aria-hidden="true">
+                    <span className="about-mini-toggle-knob" />
+                  </span>
+                </button>
+              )}
+              {betterStylesHydrated && (
+                <button
+                  type="button"
+                  className={`about-mini-toggle ${betterStyles ? 'active' : ''}`}
+                  onClick={handleToggleBetterStyles}
+                >
+                  <span className="about-mini-toggle-label">Better Styles (Beta)</span>
+                  <span className={`about-mini-toggle-switch ${betterStyles ? 'on' : ''}`} aria-hidden="true">
                     <span className="about-mini-toggle-knob" />
                   </span>
                 </button>

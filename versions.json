@@ -1,7 +1,17 @@
 {
   "schemaVersion": 1,
-  "current": "ae6dead",
+  "current": "1d3a04e",
   "versions": [
+    {
+      "sha": "1d3a04e",
+      "date": "2026-07-16T13:10:00Z",
+      "title": "关于页入口改设置图标 + 新增 Better Styles (Beta) 开关",
+      "highlights": [
+        "关于页入口图标（桌面固定 + 移动内联）由 info 改为设置齿轮图标",
+        "关于页新增 Better Styles (Beta) 开关，全设备可见，状态持久化",
+        "具体样式增强功能待后续实现"
+      ]
+    },
     {
       "sha": "ae6dead",
       "date": "2026-07-16T12:55:00Z",
