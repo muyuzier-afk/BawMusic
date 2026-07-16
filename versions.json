@@ -1,7 +1,21 @@
 {
   "schemaVersion": 1,
-  "current": "27a7f56",
+  "current": "6bfc333",
   "versions": [
+    {
+      "sha": "6bfc333",
+      "date": "2026-07-16T16:00:00Z",
+      "title": "Better Styles: 全屏播放器（仿 Apple Music 视觉）",
+      "highlights": [
+        "新增 BetterPlayer 组件：全屏 fixed 覆盖在主内容之上",
+        "布局：顶部下拉箭头 + 大封面 + 居中信息 + 进度条 + 三大控件 + 音量 + 右下角播放列表",
+        "封面/信息区点击切换为 AMLL 歌词视图",
+        "下拉箭头收起为底部迷你播放器（fixed，可与侧边栏/库共存）",
+        "时间显示：当前时间 + 负剩余时间（如 -0:26）",
+        "播放模式/翻译/音质选择整合在 BetterPlayer 内",
+        "BetterPlayer 模式下隐藏原 play-page，避免与迷你播放器重复"
+      ]
+    },
     {
       "sha": "27a7f56",
       "date": "2026-07-16T15:30:00Z",

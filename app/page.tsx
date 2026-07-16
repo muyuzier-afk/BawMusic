@@ -8,7 +8,7 @@ import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
-import { AmllLyrics } from '@/components/AmllLyrics';
+import { BetterPlayer } from '@/components/BetterPlayer';
 import { FluidBackground } from '@/components/FluidBackground';
 import { LibraryView } from '@/components/LibraryView';
 import { PlaybackControls, PlaylistDrawer } from '@/components/PlaybackControls';
@@ -718,7 +718,7 @@ export default function MusicPlayer() {
             </div>
           )}
 
-          {showPlayer && currentView === 'discover' && (
+          {showPlayer && currentView === 'discover' && !betterStyles && (
             <div className="player-shell">
               <div
                 className={`play-page player-main ${mobileLyricsOpen ? 'lyrics-on-bg' : ''}`}
@@ -726,11 +726,7 @@ export default function MusicPlayer() {
                 onClick={handlePlayPageClick}
               >
               <div className="mobile-lyrics-bg" aria-hidden={!mobileLyricsOpen}>
-                {betterStyles ? (
-                  <AmllLyrics lyrics={lyric} currentTime={currentTime} duration={duration} playing={isPlaying} showTranslation={showTranslation} />
-                ) : (
-                  <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" showTranslation={showTranslation} />
-                )}
+                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="mobile" showTranslation={showTranslation} />
               </div>
 
               {isLoading && (
@@ -789,16 +785,23 @@ export default function MusicPlayer() {
               </div>
 
               <aside className="desktop-lyrics-pane">
-                {betterStyles ? (
-                  <AmllLyrics lyrics={lyric} currentTime={currentTime} duration={duration} playing={isPlaying} showTranslation={showTranslation} />
-                ) : (
-                  <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" showTranslation={showTranslation} />
-                )}
+                <LyricsPanel lyrics={lyric} currentTime={currentTime} variant="desktop" showTranslation={showTranslation} />
               </aside>
             </div>
           )}
-          
-          {!showPlayer && currentView === 'discover' && (
+
+          {!showPlayer && currentView === 'discover' && !betterStyles && (
+            <div className="empty-state">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+              <span style={{ fontSize: '18px' }}>搜索歌曲，开始播放</span>
+            </div>
+          )}
+
+          {currentView === 'discover' && !currentSong && betterStyles && (
             <div className="empty-state">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M9 18V5l12-2v13" />
@@ -1353,6 +1356,33 @@ export default function MusicPlayer() {
             </div>
           </section>
         </div>
+      )}
+
+      {betterStyles && currentSong && (
+        <BetterPlayer
+          song={currentSong}
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
+          volume={volume}
+          playMode={playMode}
+          audioQuality={audioQuality}
+          lyric={lyric}
+          showTranslation={showTranslation}
+          hasTranslation={hasTranslation}
+          onTogglePlay={togglePlay}
+          onNext={playNext}
+          onPrev={playPrev}
+          onSeek={seek}
+          onVolumeChange={setVolume}
+          onCyclePlayMode={cyclePlayMode}
+          onAudioQualityChange={setAudioQuality}
+          onToggleTranslation={handleToggleTranslation}
+          onOpenPlaylist={() => setPlaylistOpen(true)}
+          onDownload={handleDownloadClick}
+          showDownload={Boolean(currentSong)}
+          isLoading={isLoading}
+        />
       )}
     </div>
   );
