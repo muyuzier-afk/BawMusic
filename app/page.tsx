@@ -146,6 +146,12 @@ export default function MusicPlayer() {
     document.body.classList.toggle('better-styles', betterStyles);
   }, [betterStyles]);
 
+  // Better Styles 开启时预热 AMLL/PIXI bundle，避免首次播放时液态背景加载慢
+  useEffect(() => {
+    if (!betterStyles) return;
+    void import('@applemusic-like-lyrics/react');
+  }, [betterStyles]);
+
   const handleToggleBetterStyles = useCallback(() => {
     setBetterStyles(prev => {
       const next = !prev;

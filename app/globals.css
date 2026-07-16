@@ -722,24 +722,80 @@ body.immersive-shell {
   flex-direction: column;
 }
 
-/* Better Styles 下播放列表抽屉：透明背景 + 轻微遮罩保证易读性 */
+/* Better Styles 下播放列表抽屉：深色毛玻璃，保留液态透出感但保证易读性 */
 body.better-styles .playlist-drawer {
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(50px) saturate(180%);
-  -webkit-backdrop-filter: blur(50px) saturate(180%);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 15, 18, 0.78);
+  backdrop-filter: blur(60px) saturate(180%);
+  -webkit-backdrop-filter: blur(60px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.4);
+}
+
+body.better-styles .playlist-handle {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+body.better-styles .playlist-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.better-styles .playlist-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+body.better-styles .playlist-count {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 body.better-styles .playlist-item {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 body.better-styles .playlist-item:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 body.better-styles .playlist-item.active {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+body.better-styles .playlist-item-title {
+  font-weight: 600;
+}
+
+body.better-styles .playlist-item-artist {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+body.better-styles .playlist-item.active .playlist-item-title {
+  color: #fff;
+}
+
+body.better-styles .playlist-toolbar-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.better-styles .playlist-toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+body.better-styles .playlist-checkbox {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+body.better-styles .playlist-checkbox.checked {
+  background: #fff;
+  color: #111;
+  border-color: #fff;
 }
 
 .playlist-drawer.open {

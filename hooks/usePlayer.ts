@@ -318,7 +318,22 @@ export function usePlayer(): UsePlayerReturn {
     setLyric([]);
 
     try {
-      const musicInfo = options?.resolvedMusicInfo ?? await getMusicInfo(song.id, audioQualityRef.current);
+      const musicInfoPromise = options?.resolvedMusicInfo
+        ? Promise.resolve(options.resolvedMusicInfo)
+        : getMusicInfo(song.id, audioQualityRef.current);
+
+      // 并行获取歌词，不必等待音频/音乐信息
+      const lyricPromise = getLyric(song.id)
+        .then((lyricData) => {
+          if (requestId !== loadRequestRef.current) return;
+          setLyric(parseLyric(lyricData.lrc || '', lyricData.tlyric || '', lyricData.klyric || ''));
+        })
+        .catch(() => {
+          if (requestId !== loadRequestRef.current) return;
+          setLyric([]);
+        });
+
+      const musicInfo = await musicInfoPromise;
 
       if (requestId !== loadRequestRef.current) return;
 
@@ -351,14 +366,8 @@ export function usePlayer(): UsePlayerReturn {
         }
       }
 
-      try {
-        const lyricData = await getLyric(song.id);
-        if (requestId !== loadRequestRef.current) return;
-        setLyric(parseLyric(lyricData.lrc || '', lyricData.tlyric || '', lyricData.klyric || ''));
-      } catch {
-        if (requestId !== loadRequestRef.current) return;
-        setLyric([]);
-      }
+      // 等待歌词加载完成（已并行启动）
+      await lyricPromise;
     } catch (err) {
       if (requestId !== loadRequestRef.current) return;
       const message = err instanceof Error ? err.message : 'Failed to load song';
