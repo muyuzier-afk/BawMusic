@@ -573,8 +573,15 @@ export default function MusicPlayer() {
   // PC Better Styles：启用三栏布局（左 Sidebar + 中主内容 + 右 Now Playing panel）
   // 移动端继续用全屏 overlay 模式
   const pcBetterStyles = betterStyles && !isMobile;
-  // 移动端 Better Styles 全屏 overlay 打开时（播放器/搜索），隐藏 top-bar 与 details-btn，避免按钮浮在 overlay 之上
-  const mobileOverlayOpen = betterStyles && isMobile && (Boolean(currentSong) || fullscreenSearchOpen);
+  // 移动端 BetterPlayer 最小化状态：最小化后视作 overlay 关闭，top-bar/details-btn 恢复显示
+  const [mobilePlayerMinimized, setMobilePlayerMinimized] = useState(false);
+  // 移动端 Better Styles 全屏 overlay 打开时（播放器未最小化 / 搜索），隐藏 top-bar 与 details-btn
+  const mobileOverlayOpen = betterStyles && isMobile && ((!mobilePlayerMinimized && Boolean(currentSong)) || fullscreenSearchOpen);
+
+  // 当前歌曲变化（含清空）时重置最小化状态，避免残留导致新歌 overlay 被误判为已最小化
+  useEffect(() => {
+    setMobilePlayerMinimized(false);
+  }, [currentSong?.id]);
   const openMobileLyrics = useCallback(() => {
     if (!currentSong) return;
 
@@ -1478,6 +1485,7 @@ export default function MusicPlayer() {
           showDownload={Boolean(currentSong)}
           isLoading={isLoading}
           variant="fullscreen"
+          onMinimizedChange={setMobilePlayerMinimized}
         />
       )}
 

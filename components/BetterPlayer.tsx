@@ -46,6 +46,8 @@ interface BetterPlayerProps {
   isLoading?: boolean;
   /** 渲染模式：fullscreen=移动端全屏覆盖；panel=PC 端右侧常驻面板 */
   variant?: 'fullscreen' | 'panel';
+  /** 最小化状态变化回调（仅 fullscreen 模式触发），供父级恢复 top-bar 等控件 */
+  onMinimizedChange?: (minimized: boolean) => void;
 }
 
 /**
@@ -77,6 +79,7 @@ export function BetterPlayer({
   showDownload,
   isLoading = false,
   variant = 'fullscreen',
+  onMinimizedChange,
 }: BetterPlayerProps) {
   const isPanel = variant === 'panel';
   const [view, setView] = useState<'cover' | 'lyrics'>('cover');
@@ -93,8 +96,21 @@ export function BetterPlayer({
   }, []);
 
   const toggleMinimize = useCallback(() => {
-    setMinimized((prev) => !prev);
-  }, []);
+    setMinimized((prev) => {
+      const next = !prev;
+      if (!isPanel) onMinimizedChange?.(next);
+      return next;
+    });
+  }, [isPanel, onMinimizedChange]);
+
+  // 切歌时同步重置最小化状态
+  useEffect(() => {
+    if (minimized) {
+      setMinimized(false);
+      if (!isPanel) onMinimizedChange?.(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [songId]);
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
