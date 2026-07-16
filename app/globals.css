@@ -3376,10 +3376,6 @@ body.better-styles .sidebar-item {
 
 /* 移动端适配 */
 @media (max-width: 480px) {
-  .better-player {
-    background: linear-gradient(180deg, #6c6f7c 0%, #4f525c 50%, #2c2e36 100%);
-  }
-
   .better-player-content {
     padding: 12px 22px;
     gap: 22px;
