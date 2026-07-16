@@ -81,6 +81,12 @@ interface UsePlayerReturn {
   removePlaylistItems: (indices: number[]) => void;
   clearNotice: () => void;
   showNotice: (message: string) => void;
+  /**
+   * 设置播放范围：传入一组 songId 时，playNext/playPrev 严格在该范围内
+   * 按给定顺序循环，不会播放范围外的歌曲，也不会回退到历史记录。
+   * 传 null 表示无范围限制，恢复默认全列表行为。
+   */
+  setPlaybackScope: (ids: number[] | null) => void;
 }
 
 export function usePlayer(): UsePlayerReturn {
@@ -90,6 +96,8 @@ export function usePlayer(): UsePlayerReturn {
   const playNextRef = useRef<() => void>(() => {});
   const playPrevRef = useRef<() => void>(() => {});
   const loadRequestRef = useRef(0);
+  // 播放范围：非空时 next/prev 仅在该 songId 序列内循环，不越界、不回退历史
+  const scopeSongIdsRef = useRef<number[] | null>(null);
   
   const [currentSong, setCurrentSong] = useState<MusicInfo | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -517,6 +525,44 @@ export function usePlayer(): UsePlayerReturn {
       return;
     }
 
+    // 文件夹范围内播放：严格按 scope 顺序循环，不越界、不回退历史记录
+    const scope = scopeSongIdsRef.current;
+    if (scope && scope.length > 0) {
+      const idToSong = new Map(playlist.map((s) => [s.id, s]));
+      const scopedSongs: Song[] = [];
+      for (const id of scope) {
+        const s = idToSong.get(id);
+        if (s) scopedSongs.push(s);
+      }
+      if (scopedSongs.length === 0) return;
+
+      const currentSongId = currentSong?.id;
+      const curIdxInScope = currentSongId !== undefined ? scopedSongs.findIndex((s) => s.id === currentSongId) : -1;
+
+      if (playModeRef.current === 'shuffle') {
+        let randomIndex = Math.floor(Math.random() * scopedSongs.length);
+        if (scopedSongs.length > 1 && scopedSongs[randomIndex]?.id === currentSongId) {
+          randomIndex = (randomIndex + 1) % scopedSongs.length;
+        }
+        const target = scopedSongs[randomIndex];
+        const idxInPlaylist = playlist.findIndex((s) => s.id === target.id);
+        if (idxInPlaylist >= 0) setCurrentIndex(idxInPlaylist);
+        updateHistory(target);
+        loadSong(target);
+        return;
+      }
+
+      // list 模式：按文件夹顺序循环
+      const nextIdx = curIdxInScope < 0 ? 0 : (curIdxInScope + 1) % scopedSongs.length;
+      const target = scopedSongs[nextIdx];
+      if (!target) return;
+      const idxInPlaylist = playlist.findIndex((s) => s.id === target.id);
+      if (idxInPlaylist >= 0) setCurrentIndex(idxInPlaylist);
+      updateHistory(target);
+      loadSong(target);
+      return;
+    }
+
     if (playModeRef.current === 'shuffle') {
       const source = playlist.length > 0 ? playlist : historyRecords;
       if (source.length === 0) return;
@@ -591,6 +637,46 @@ export function usePlayer(): UsePlayerReturn {
       return;
     }
 
+    // 文件夹范围内播放：严格按 scope 顺序循环，不越界、不回退历史记录
+    const scope = scopeSongIdsRef.current;
+    if (scope && scope.length > 0) {
+      const idToSong = new Map(playlist.map((s) => [s.id, s]));
+      const scopedSongs: Song[] = [];
+      for (const id of scope) {
+        const s = idToSong.get(id);
+        if (s) scopedSongs.push(s);
+      }
+      if (scopedSongs.length === 0) return;
+
+      const currentSongId = currentSong?.id;
+      const curIdxInScope = currentSongId !== undefined ? scopedSongs.findIndex((s) => s.id === currentSongId) : -1;
+
+      if (playModeRef.current === 'shuffle') {
+        let randomIndex = Math.floor(Math.random() * scopedSongs.length);
+        if (scopedSongs.length > 1 && scopedSongs[randomIndex]?.id === currentSongId) {
+          randomIndex = (randomIndex + 1) % scopedSongs.length;
+        }
+        const target = scopedSongs[randomIndex];
+        const idxInPlaylist = playlist.findIndex((s) => s.id === target.id);
+        if (idxInPlaylist >= 0) setCurrentIndex(idxInPlaylist);
+        updateHistory(target);
+        loadSong(target);
+        return;
+      }
+
+      // list 模式：按文件夹顺序循环（向前）
+      const prevIdx = curIdxInScope < 0
+        ? 0
+        : (curIdxInScope - 1 + scopedSongs.length) % scopedSongs.length;
+      const target = scopedSongs[prevIdx];
+      if (!target) return;
+      const idxInPlaylist = playlist.findIndex((s) => s.id === target.id);
+      if (idxInPlaylist >= 0) setCurrentIndex(idxInPlaylist);
+      updateHistory(target);
+      loadSong(target);
+      return;
+    }
+
     if (playModeRef.current === 'shuffle') {
       const source = playlist.length > 0 ? playlist : historyRecords;
       if (source.length === 0) return;
@@ -608,7 +694,7 @@ export function usePlayer(): UsePlayerReturn {
       loadSong(randomSong);
       return;
     }
-    
+
     let prevIndex = currentIndex - 1;
     if (prevIndex < 0) {
       const extended = ensurePlaylistByHistory(playlist);
@@ -866,6 +952,10 @@ export function usePlayer(): UsePlayerReturn {
     setNotice(message);
   }, []);
 
+  const setPlaybackScope = useCallback((ids: number[] | null) => {
+    scopeSongIdsRef.current = ids && ids.length > 0 ? ids.slice() : null;
+  }, []);
+
   return {
     currentSong,
     isPlaying,
@@ -899,6 +989,7 @@ export function usePlayer(): UsePlayerReturn {
     removePlaylistItems,
     playAt,
     clearNotice,
-    showNotice
+    showNotice,
+    setPlaybackScope
   };
 }

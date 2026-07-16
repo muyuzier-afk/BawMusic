@@ -64,7 +64,8 @@ export default function MusicPlayer() {
     clearPlaylist,
     addToPlaylist,
     clearNotice,
-    showNotice
+    showNotice,
+    setPlaybackScope
   } = usePlayer();
 
   const apiSource = useApiSource();
@@ -146,6 +147,17 @@ export default function MusicPlayer() {
 
   // 当前歌词是否包含翻译行，决定是否显示翻译开关
   const hasTranslation = useMemo(() => lyric.some(line => line.translation), [lyric]);
+
+  // 文件夹范围内播放：当前歌曲若属于某文件夹，则把播放范围限定到该文件夹的顺序
+  const playbackScope = useMemo(() => {
+    if (!currentSong) return null;
+    const folder = folders.find((f) => f.songIds.includes(currentSong.id));
+    return folder ? folder.songIds.slice() : null;
+  }, [currentSong, folders]);
+
+  useEffect(() => {
+    setPlaybackScope(playbackScope);
+  }, [playbackScope, setPlaybackScope]);
 
   const handleToggleTranslation = useCallback(() => {
     setShowTranslation(prev => !prev);
