@@ -1,7 +1,18 @@
 {
   "schemaVersion": 1,
-  "current": "19e5be2",
+  "current": "7a4b9e4",
   "versions": [
+    {
+      "sha": "7a4b9e4",
+      "date": "2026-07-16T02:45:00Z",
+      "title": "LiquidFlow Styles：手机端陀螺仪驱动背景液体流动",
+      "highlights": [
+        "手机端关于页面新增 LiquidFlow Styles 开关（非 DevMenu）",
+        "开启后实时获取设备陀螺仪数据，背景液体随手机倾斜流动",
+        "iOS 13+ 自动请求陀螺仪权限；低通滤波+死区处理避免抖动",
+        "开关状态持久化到 localStorage，下次进入自动恢复"
+      ]
+    },
     {
       "sha": "19e5be2",
       "date": "2026-07-15T18:30:00Z",

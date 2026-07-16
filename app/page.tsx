@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect, useRef, type MouseEvent } fr
 import { Capacitor } from '@capacitor/core';
 import { usePlayer } from '@/hooks/usePlayer';
 import { useLibraryFolders } from '@/hooks/useLibraryFolders';
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 import { SearchBar } from '@/components/Search';
 import { ProgressBar } from '@/components/ProgressBar';
 import { LyricsPanel } from '@/components/LyricsPanel';
@@ -103,6 +104,45 @@ export default function MusicPlayer() {
   const [devHydrated, setDevHydrated] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
+  // LiquidFlow Styles：手机端陀螺仪驱动背景液体流动
+  const [liquidFlow, setLiquidFlow] = useState(false);
+  const [liquidFlowHydrated, setLiquidFlowHydrated] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 读取 LiquidFlow 持久化状态 + 检测移动端
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem('bawmusic:liquid-flow');
+      if (stored === '1') setLiquidFlow(true);
+    } catch { /* ignore */ }
+    setLiquidFlowHydrated(true);
+    setIsMobile(window.matchMedia('(max-width: 768px)').matches || typeof window.orientation !== 'undefined');
+  }, []);
+
+  const { offsetX, offsetY, requestPermission, supported: orientationSupported } = useDeviceOrientation({
+    enabled: liquidFlow && isMobile,
+  });
+
+  const handleToggleLiquidFlow = useCallback(async () => {
+    if (liquidFlow) {
+      // 关闭：直接置 false
+      setLiquidFlow(false);
+      try { window.localStorage.setItem('bawmusic:liquid-flow', '0'); } catch { /* ignore */ }
+      return;
+    }
+    // 开启：iOS 需先请求权限（必须在用户手势内）
+    if (orientationSupported) {
+      const ok = await requestPermission();
+      if (!ok) {
+        showNotice('未获得陀螺仪权限，无法启用');
+        return;
+      }
+    }
+    setLiquidFlow(true);
+    try { window.localStorage.setItem('bawmusic:liquid-flow', '1'); } catch { /* ignore */ }
+    showNotice('LiquidFlow Styles 已开启');
+  }, [liquidFlow, orientationSupported, requestPermission, showNotice]);
 
   // 当前歌词是否包含翻译行，决定是否显示翻译开关
   const hasTranslation = useMemo(() => lyric.some(line => line.translation), [lyric]);
@@ -494,7 +534,10 @@ export default function MusicPlayer() {
   
   return (
     <div className="app-container">
-      <div className="bg-layer">
+      <div
+        className="bg-layer"
+        style={liquidFlow ? { transform: `translate3d(${(offsetX * 24).toFixed(2)}px, ${(offsetY * 24).toFixed(2)}px, 0)` } : undefined}
+      >
         {bgImage ? (
           <FluidBackground album={bgImage} playing={isPlaying} />
         ) : (
@@ -823,6 +866,18 @@ export default function MusicPlayer() {
                   }}
                 >
                   DevMenu
+                </button>
+              )}
+              {liquidFlowHydrated && isMobile && (
+                <button
+                  type="button"
+                  className={`about-mini-toggle ${liquidFlow ? 'active' : ''}`}
+                  onClick={() => void handleToggleLiquidFlow()}
+                >
+                  <span className="about-mini-toggle-label">LiquidFlow Styles</span>
+                  <span className={`about-mini-toggle-switch ${liquidFlow ? 'on' : ''}`} aria-hidden="true">
+                    <span className="about-mini-toggle-knob" />
+                  </span>
                 </button>
               )}
               <a
