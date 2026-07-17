@@ -129,13 +129,14 @@ export function BetterPlayer({
   // 进度条拖拽
   const [isDragging, setIsDragging] = useState(false);
   const [dragPercent, setDragPercent] = useState<number | null>(null);
-  // Full AMLL 进度条：松手 seek 后立即同步 value，避免内部 useAnimationFrame 空窗期自增导致"往前冲又回去"
-  const [pendingSeek, setPendingSeek] = useState<number | null>(null);
-  // currentTime 追上 pendingSeek 后清空，恢复由 currentTime 驱动
+  // Full AMLL 进度条：BouncingSlider 是「半受控」组件，播放时靠内部 useAnimationFrame 自增渲染，
+  // value 只应作为离散校正基准（切歌 / seek 后），不能跟随 currentTime 连续变化，
+  // 否则内部自增与 value effect 冲突，进度条抖动。
+  const [sliderValue, setSliderValue] = useState(currentTime);
+  // 切歌时重置校正基准
   useEffect(() => {
-    if (pendingSeek === null) return;
-    if (Math.abs(currentTime - pendingSeek) < 0.5) setPendingSeek(null);
-  }, [currentTime, pendingSeek]);
+    setSliderValue(currentTime);
+  }, [songId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProgressPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -340,12 +341,12 @@ export function BetterPlayer({
           }>
             <AmllFullSlider
               className="better-player-progress-amll"
-              value={Math.min(pendingSeek ?? currentTime, duration)}
+              value={Math.min(sliderValue, duration)}
               min={0}
               max={duration}
               isPlaying={isPlaying}
               onBeforeChange={() => setIsDragging(true)}
-              onAfterChange={(v) => { setPendingSeek(v); onSeek(v); setIsDragging(false); }}
+              onAfterChange={(v) => { setSliderValue(v); onSeek(v); setIsDragging(false); }}
               onSeeking={(seeking) => setIsDragging(seeking)}
             />
           </Suspense>
