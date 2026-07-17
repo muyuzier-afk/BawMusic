@@ -454,7 +454,10 @@ export function BetterPlayer({
             value={volume}
             min={0}
             max={1}
-            isPlaying={isPlaying}
+            // 音量是静态值，不随播放时间增长。BouncingSlider 的 useAnimationFrame 在
+            // isPlaying=true 时会持续 localTimeRef += delta 累加到 max，导致音量条
+            // 动画在松手后自动回到 100%。音量条必须传 isPlaying=false。
+            isPlaying={false}
             changeOnDrag
             onChange={(v) => onVolumeChange(v)}
             beforeIcon={
