@@ -7,7 +7,7 @@ import { normalizeMediaUrl } from '@/lib/media';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
 import { AmllLyrics } from './AmllLyrics';
 
-// Full AMLL 增量借用组件：Better Styles 开启时由父级传入 useFullAmll=true 触发动态加载，避免默认打包
+// Full AMLL 增量借用组件：作为 Better Styles (Beta) 的固有部分，组件挂载时动态加载，避免默认打包
 const AmllFullCover = lazy(() => import('@applemusic-like-lyrics/react-full').then(m => ({ default: m.Cover })));
 const AmllFullSlider = lazy(() => import('@applemusic-like-lyrics/react-full').then(m => ({ default: m.BouncingSlider })));
 const AmllFullVolume = lazy(() => import('@applemusic-like-lyrics/react-full').then(m => ({ default: m.VolumeControl })));
@@ -53,8 +53,6 @@ interface BetterPlayerProps {
   variant?: 'fullscreen' | 'panel';
   /** 最小化状态变化回调（仅 fullscreen 模式触发），供父级恢复 top-bar 等控件 */
   onMinimizedChange?: (minimized: boolean) => void;
-  /** 启用 Full AMLL 控件（Cover/BouncingSlider/VolumeControl），由 Better Styles 开关驱动 */
-  useFullAmll?: boolean;
 }
 
 /**
@@ -87,7 +85,6 @@ export function BetterPlayer({
   isLoading = false,
   variant = 'fullscreen',
   onMinimizedChange,
-  useFullAmll = false,
 }: BetterPlayerProps) {
   const isPanel = variant === 'panel';
   const [view, setView] = useState<'cover' | 'lyrics'>('cover');
@@ -129,7 +126,7 @@ export function BetterPlayer({
   // 进度条拖拽
   const [isDragging, setIsDragging] = useState(false);
   const [dragPercent, setDragPercent] = useState<number | null>(null);
-  // Full AMLL 进度条：BouncingSlider 是「半受控」组件，播放时靠内部 useAnimationFrame
+  // Better Styles 进度条：BouncingSlider 是「半受控」组件，播放时靠内部 useAnimationFrame
   // 按 delta(ms) 自增 localTimeRef 渲染，故 value/min/max 必须用毫秒单位；
   // value 只作为离散校正基准（切歌 / seek 后），不能跟随 currentTime 连续变化。
   // BouncingSlider 内部 useEffect 仅在 [value,min,max] 变化时才把 value 同步到 localTimeRef，
@@ -288,31 +285,21 @@ export function BetterPlayer({
               aria-label="查看歌词"
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleView(); } }}
             >
-              {useFullAmll ? (
-                <Suspense fallback={
-                  <img
-                    src={coverUrl}
-                    alt={song.name}
-                    className="better-player-cover"
-                    style={{ opacity: 0.3 }}
-                    onError={(e) => { if (e.currentTarget.src !== PLACEHOLDER_COVER) e.currentTarget.src = PLACEHOLDER_COVER; }}
-                  />
-                }>
-                  <AmllFullCover
-                    coverUrl={coverUrl}
-                    musicPaused={!isPlaying}
-                    className="better-player-cover better-player-cover--amll"
-                  />
-                </Suspense>
-              ) : (
+              <Suspense fallback={
                 <img
                   src={coverUrl}
                   alt={song.name}
                   className="better-player-cover"
-                  style={{ opacity: isLoading ? 0.3 : 1 }}
+                  style={{ opacity: 0.3 }}
                   onError={(e) => { if (e.currentTarget.src !== PLACEHOLDER_COVER) e.currentTarget.src = PLACEHOLDER_COVER; }}
                 />
-              )}
+              }>
+                <AmllFullCover
+                  coverUrl={coverUrl}
+                  musicPaused={!isPlaying}
+                  className="better-player-cover better-player-cover--amll"
+                />
+              </Suspense>
               {isLoading && <div className="better-player-cover-loading" />}
             </div>
 
@@ -338,7 +325,7 @@ export function BetterPlayer({
       </div>
 
       <div className="better-player-progress-wrap">
-        {useFullAmll && duration > 0 ? (
+        {duration > 0 ? (
           <Suspense fallback={
             <div className={`better-player-progress ${isDragging ? 'dragging' : ''}`}>
               <div className="better-player-progress-fill" style={{ width: `${displayPercent}%` }} />
@@ -359,11 +346,11 @@ export function BetterPlayer({
         ) : (
           <div
             className={`better-player-progress ${isDragging ? 'dragging' : ''}`}
-            onPointerDown={handleProgressPointerDown}
-            onPointerMove={handleProgressPointerMove}
-            onPointerUp={handleProgressPointerUp}
-            onPointerCancel={handleProgressPointerUp}
-          >
+          onPointerDown={handleProgressPointerDown}
+          onPointerMove={handleProgressPointerMove}
+          onPointerUp={handleProgressPointerUp}
+          onPointerCancel={handleProgressPointerUp}
+        >
             <div className="better-player-progress-fill" style={{ width: `${displayPercent}%` }} />
           </div>
         )}
@@ -441,63 +428,37 @@ export function BetterPlayer({
       </div>
 
       <div className="better-player-volume">
-        {useFullAmll ? (
-          <Suspense fallback={
-            <input
-              className="better-player-volume-slider"
-              type="range"
-              min={0}
-              max={100}
-              value={Math.round(volume * 100)}
-              onChange={(e) => onVolumeChange(Number(e.target.value) / 100)}
-              aria-label="音量调节"
-            />
-          }>
-            <AmllFullVolume
-              className="better-player-volume-amll"
-              value={volume}
-              min={0}
-              max={1}
-              isPlaying={isPlaying}
-              changeOnDrag
-              onChange={(v) => onVolumeChange(v)}
-              beforeIcon={
-                <button
-                  className="better-player-volume-icon-btn"
-                  onClick={() => onVolumeChange(isMuted ? 0.8 : 0)}
-                  aria-label={isMuted ? '取消静音' : '静音'}
-                  type="button"
-                >
-                  {isMuted ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}
-                </button>
-              }
-            />
-          </Suspense>
-        ) : (
-          <>
-            <button
-              className="better-player-volume-icon-btn"
-              onClick={() => onVolumeChange(isMuted ? 0.8 : 0)}
-              aria-label={isMuted ? '取消静音' : '静音'}
-              type="button"
-            >
-              {isMuted ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}
-            </button>
-            <input
-              className="better-player-volume-slider"
-              type="range"
-              min={0}
-              max={100}
-              value={Math.round(volume * 100)}
-              onChange={(e) => onVolumeChange(Number(e.target.value) / 100)}
-              style={{ ['--volume-progress' as any]: `${Math.round(volume * 100)}%` }}
-              aria-label="音量调节"
-            />
-            <span className="better-player-volume-icon-end" aria-hidden="true">
-              <VolumeIcon size={18} />
-            </span>
-          </>
-        )}
+        <Suspense fallback={
+          <input
+            className="better-player-volume-slider"
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(volume * 100)}
+            onChange={(e) => onVolumeChange(Number(e.target.value) / 100)}
+            aria-label="音量调节"
+          />
+        }>
+          <AmllFullVolume
+            className="better-player-volume-amll"
+            value={volume}
+            min={0}
+            max={1}
+            isPlaying={isPlaying}
+            changeOnDrag
+            onChange={(v) => onVolumeChange(v)}
+            beforeIcon={
+              <button
+                className="better-player-volume-icon-btn"
+                onClick={() => onVolumeChange(isMuted ? 0.8 : 0)}
+                aria-label={isMuted ? '取消静音' : '静音'}
+                type="button"
+              >
+                {isMuted ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}
+              </button>
+            }
+          />
+        </Suspense>
       </div>
 
       <div className="better-player-bottombar">

@@ -4292,7 +4292,7 @@ body.better-styles .sidebar-item {
   }
 }
 
-/* Full AMLL 增量借用组件适配：让 react-full 控件填满现有容器 */
+/* Better Styles (Beta)：react-full 控件适配，让 Cover/Slider/Volume 填满现有容器 */
 .better-player-cover--amll {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -4316,7 +4316,7 @@ body.better-styles .sidebar-item {
   touch-action: none;
 }
 
-/* Better Styles 模式（启用 Full AMLL 控件）：进度条与上方歌手信息之间留出间距 */
+/* Better Styles (Beta)：进度条与上方歌手信息之间留出间距 */
 .better-styles .better-player-progress-wrap {
   padding-top: 14px;
 }

@@ -822,7 +822,6 @@ export default function MusicPlayer() {
             showDownload={Boolean(currentSong)}
             isLoading={isLoading}
             variant="panel"
-            useFullAmll={betterStyles}
           />
         )}
       </div>
@@ -1380,7 +1379,6 @@ export default function MusicPlayer() {
           isLoading={isLoading}
           variant="fullscreen"
           onMinimizedChange={setMobilePlayerMinimized}
-          useFullAmll={betterStyles}
         />
       )}
 
