@@ -3510,12 +3510,13 @@ body.better-styles .sidebar-item {
 /* ============================
  * Better Styles PC 面板模式（右侧常驻 Now Playing）
  * 作为三栏布局的第三列，非 fixed，正常文档流
+ * 针对窄列优化：封面置顶左对齐、控件紧凑、底部工具栏单行
  * ============================ */
 .better-player--panel {
   position: relative;
   inset: auto;
   z-index: auto;
-  width: 380px;
+  width: 340px;
   height: 100%;
   flex-shrink: 0;
   background: transparent;
@@ -3524,16 +3525,16 @@ body.better-styles .sidebar-item {
   overflow: hidden;
 }
 
-/* 面板内部：封面更小、信息左对齐、控件紧凑 */
+/* 内容区：顶部封面 + 信息，紧凑堆叠 */
 .better-player--panel .better-player-content {
-  padding: 24px 24px 12px;
-  gap: 16px;
+  padding: 20px 20px 8px;
+  gap: 14px;
   justify-content: flex-start;
 }
 
 .better-player--panel .better-player-cover-wrap {
   width: 100%;
-  max-width: 300px;
+  max-width: 220px;
 }
 
 .better-player--panel .better-player-info {
@@ -3543,42 +3544,81 @@ body.better-styles .sidebar-item {
 }
 
 .better-player--panel .better-player-title {
-  font-size: 18px;
+  font-size: 17px;
+  margin-bottom: 4px;
 }
 
 .better-player--panel .better-player-artist {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .better-player--panel .better-player-lyrics {
   min-height: 0;
-  /* panel 高度小于全屏，呼吸空间相应收窄 */
-  padding: 8vh 0;
+  padding: 6vh 0;
 }
 
 .better-player--panel .better-player-progress-wrap {
-  padding: 0 24px 12px;
+  padding: 0 20px 8px;
 }
 
 .better-player--panel .better-player-controls {
-  padding: 4px 20px 12px;
+  padding: 2px 16px 8px;
 }
 
 .better-player--panel .better-player-control-btn {
   padding: 6px;
 }
 
-.better-player--panel .better-player-extras {
-  padding: 0 20px 10px;
-  gap: 12px;
+/* 底部工具栏：把 extras / 音量 / 播放列表按钮合并成一行横排 */
+.better-player--panel .better-player-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 16px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: auto;
 }
 
-.better-player--panel .better-player-volume {
-  padding: 4px 24px 14px;
+.better-player--panel .better-player-toolbar .better-player-extras {
+  flex: 1;
+  justify-content: flex-start;
+  padding: 0;
+  gap: 4px;
 }
 
-.better-player--panel .better-player-bottombar {
-  padding: 8px 20px 16px;
+.better-player--panel .better-player-toolbar .better-player-extras-btn {
+  width: 28px;
+  height: 28px;
+}
+
+.better-player--panel .better-player-toolbar .better-player-quality-select {
+  font-size: 10px;
+  padding: 3px 8px;
+  margin-left: 2px;
+}
+
+/* 音量在工具栏里收成图标+滑块紧凑形态，不占整行 */
+.better-player--panel .better-player-toolbar .better-player-volume {
+  flex: 1.4;
+  min-width: 0;
+  padding: 0;
+  gap: 6px;
+}
+
+.better-player--panel .better-player-toolbar .better-player-volume-icon-btn {
+  width: 24px;
+  height: 24px;
+}
+
+.better-player--panel .better-player-toolbar .better-player-volume-amll {
+  height: 14px;
+}
+
+.better-player--panel .better-player-toolbar .better-player-bottombar-btn {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 /* 无歌曲时面板不占位（由 JS 控制），这里仅做安全兜底 */

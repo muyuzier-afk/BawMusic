@@ -399,92 +399,182 @@ export function BetterPlayer({
         </button>
       </div>
 
-      <div className="better-player-extras">
-        <button
-          className="better-player-extras-btn"
-          onClick={onCyclePlayMode}
-          aria-label={`当前模式：${modeLabel}`}
-          title={modeLabel}
-          type="button"
-        >
-          {renderPlayModeIcon()}
-        </button>
+      {isPanel ? (
+        <div className="better-player-toolbar">
+          <div className="better-player-extras">
+            <button
+              className="better-player-extras-btn"
+              onClick={onCyclePlayMode}
+              aria-label={`当前模式：${modeLabel}`}
+              title={modeLabel}
+              type="button"
+            >
+              {renderPlayModeIcon()}
+            </button>
 
-        {hasTranslation && (
-          <button
-            className={`better-player-extras-btn ${showTranslation ? 'active' : ''}`}
-            onClick={onToggleTranslation}
-            aria-label={showTranslation ? '隐藏翻译' : '显示翻译'}
-            type="button"
-          >
-            <TranslateIcon size={16} />
-          </button>
-        )}
-
-        <select
-          className="better-player-quality-select"
-          value={audioQuality}
-          onChange={(e) => onAudioQualityChange(e.target.value as AudioQuality)}
-          aria-label="音质切换"
-        >
-          <option value="standard">标准</option>
-          <option value="exhigh">极高</option>
-          <option value="lossless">无损</option>
-          <option value="hires">Hi-Res</option>
-          <option value="jymaster">超清母带</option>
-          <option value="sky">天空音效</option>
-          <option value="jyeffect">沉浸环绕声</option>
-        </select>
-      </div>
-
-      <div className="better-player-volume">
-        <Suspense fallback={
-          <input
-            className="better-player-volume-slider"
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(volume * 100)}
-            onChange={(e) => onVolumeChange(Number(e.target.value) / 100)}
-            aria-label="音量调节"
-          />
-        }>
-          <AmllFullVolume
-            className="better-player-volume-amll"
-            value={volume}
-            min={0}
-            max={1}
-            // 音量是静态值，不随播放时间增长。BouncingSlider 的 useAnimationFrame 在
-            // isPlaying=true 时会持续 localTimeRef += delta 累加到 max，导致音量条
-            // 动画在松手后自动回到 100%。音量条必须传 isPlaying=false。
-            isPlaying={false}
-            changeOnDrag
-            onChange={(v) => onVolumeChange(v)}
-            beforeIcon={
+            {hasTranslation && (
               <button
-                className="better-player-volume-icon-btn"
-                onClick={() => onVolumeChange(isMuted ? 0.8 : 0)}
-                aria-label={isMuted ? '取消静音' : '静音'}
+                className={`better-player-extras-btn ${showTranslation ? 'active' : ''}`}
+                onClick={onToggleTranslation}
+                aria-label={showTranslation ? '隐藏翻译' : '显示翻译'}
                 type="button"
               >
-                {isMuted ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}
+                <TranslateIcon size={16} />
               </button>
-            }
-          />
-        </Suspense>
-      </div>
+            )}
 
-      <div className="better-player-bottombar">
-        <div className="better-player-bottombar-spacer" />
-        <button
-          className="better-player-bottombar-btn"
-          onClick={onOpenPlaylist}
-          aria-label="播放列表"
-          type="button"
-        >
-          <ListIcon size={20} />
-        </button>
-      </div>
+            <select
+              className="better-player-quality-select"
+              value={audioQuality}
+              onChange={(e) => onAudioQualityChange(e.target.value as AudioQuality)}
+              aria-label="音质切换"
+            >
+              <option value="standard">标准</option>
+              <option value="exhigh">极高</option>
+              <option value="lossless">无损</option>
+              <option value="hires">Hi-Res</option>
+              <option value="jymaster">超清母带</option>
+              <option value="sky">天空音效</option>
+              <option value="jyeffect">沉浸环绕声</option>
+            </select>
+          </div>
+
+          <div className="better-player-volume">
+            <Suspense fallback={
+              <input
+                className="better-player-volume-slider"
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(volume * 100)}
+                onChange={(e) => onVolumeChange(Number(e.target.value) / 100)}
+                aria-label="音量调节"
+              />
+            }>
+              <AmllFullVolume
+                className="better-player-volume-amll"
+                value={volume}
+                min={0}
+                max={1}
+                // 音量是静态值，不随播放时间增长。BouncingSlider 的 useAnimationFrame 在
+                // isPlaying=true 时会持续 localTimeRef += delta 累加到 max，导致音量条
+                // 动画在松手后自动回到 100%。音量条必须传 isPlaying=false。
+                isPlaying={false}
+                changeOnDrag
+                onChange={(v) => onVolumeChange(v)}
+                beforeIcon={
+                  <button
+                    className="better-player-volume-icon-btn"
+                    onClick={() => onVolumeChange(isMuted ? 0.8 : 0)}
+                    aria-label={isMuted ? '取消静音' : '静音'}
+                    type="button"
+                  >
+                    {isMuted ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}
+                  </button>
+                }
+              />
+            </Suspense>
+          </div>
+
+          <button
+            className="better-player-bottombar-btn"
+            onClick={onOpenPlaylist}
+            aria-label="播放列表"
+            type="button"
+          >
+            <ListIcon size={20} />
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="better-player-extras">
+            <button
+              className="better-player-extras-btn"
+              onClick={onCyclePlayMode}
+              aria-label={`当前模式：${modeLabel}`}
+              title={modeLabel}
+              type="button"
+            >
+              {renderPlayModeIcon()}
+            </button>
+
+            {hasTranslation && (
+              <button
+                className={`better-player-extras-btn ${showTranslation ? 'active' : ''}`}
+                onClick={onToggleTranslation}
+                aria-label={showTranslation ? '隐藏翻译' : '显示翻译'}
+                type="button"
+              >
+                <TranslateIcon size={16} />
+              </button>
+            )}
+
+            <select
+              className="better-player-quality-select"
+              value={audioQuality}
+              onChange={(e) => onAudioQualityChange(e.target.value as AudioQuality)}
+              aria-label="音质切换"
+            >
+              <option value="standard">标准</option>
+              <option value="exhigh">极高</option>
+              <option value="lossless">无损</option>
+              <option value="hires">Hi-Res</option>
+              <option value="jymaster">超清母带</option>
+              <option value="sky">天空音效</option>
+              <option value="jyeffect">沉浸环绕声</option>
+            </select>
+          </div>
+
+          <div className="better-player-volume">
+            <Suspense fallback={
+              <input
+                className="better-player-volume-slider"
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(volume * 100)}
+                onChange={(e) => onVolumeChange(Number(e.target.value) / 100)}
+                aria-label="音量调节"
+              />
+            }>
+              <AmllFullVolume
+                className="better-player-volume-amll"
+                value={volume}
+                min={0}
+                max={1}
+                // 音量是静态值，不随播放时间增长。BouncingSlider 的 useAnimationFrame 在
+                // isPlaying=true 时会持续 localTimeRef += delta 累加到 max，导致音量条
+                // 动画在松手后自动回到 100%。音量条必须传 isPlaying=false。
+                isPlaying={false}
+                changeOnDrag
+                onChange={(v) => onVolumeChange(v)}
+                beforeIcon={
+                  <button
+                    className="better-player-volume-icon-btn"
+                    onClick={() => onVolumeChange(isMuted ? 0.8 : 0)}
+                    aria-label={isMuted ? '取消静音' : '静音'}
+                    type="button"
+                  >
+                    {isMuted ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}
+                  </button>
+                }
+              />
+            </Suspense>
+          </div>
+
+          <div className="better-player-bottombar">
+            <div className="better-player-bottombar-spacer" />
+            <button
+              className="better-player-bottombar-btn"
+              onClick={onOpenPlaylist}
+              aria-label="播放列表"
+              type="button"
+            >
+              <ListIcon size={20} />
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
