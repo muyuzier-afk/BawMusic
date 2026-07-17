@@ -139,6 +139,16 @@ export function BetterPlayer({
     prevSongIdRef.current = songId;
     setSliderValueMs(0);
   }
+  // 最小化期间 BouncingSlider 被卸载，展开时会重新挂载。
+  // 若不校正 value，localTimeRef 会从 0（或上首残留）开始 → 进度条从 0 流动而歌曲正常。
+  // 恢复展开时把 sliderValueMs 同步到当前播放进度，让重新挂载首帧 localTimeRef 即为正确值。
+  const prevMinimizedRef = useRef(minimized);
+  if (prevMinimizedRef.current !== minimized) {
+    prevMinimizedRef.current = minimized;
+    if (!minimized) {
+      setSliderValueMs(Math.round(currentTime * 1000));
+    }
+  }
 
   const handleProgressPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
