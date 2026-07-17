@@ -4307,6 +4307,8 @@ body.better-styles .sidebar-item {
 .better-player-progress-amll {
   width: 100%;
   height: 16px;
+  /* 移动端必须 none，否则浏览器把触摸事件抢去滚动，framer-motion 的 onPan 手势异常 */
+  touch-action: none;
 }
 
 /* Full AMLL 模式：进度条与上方歌手信息之间留出间距 */
