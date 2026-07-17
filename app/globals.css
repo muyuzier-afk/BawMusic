@@ -3041,7 +3041,8 @@ body.better-styles .sidebar-item {
   cursor: pointer;
   background: transparent;
   transition: transform var(--transition-fast);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  /* 不在此处加 box-shadow：AMLL Cover 自带 filter: drop-shadow 会随暂停 scale 一起缩小，
+     若 wrap 另加固定 box-shadow，暂停缩小时会留下原尺寸的方框造成色差 */
 }
 
 .better-player-cover-wrap:hover {
