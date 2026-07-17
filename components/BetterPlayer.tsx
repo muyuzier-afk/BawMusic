@@ -1,6 +1,6 @@
 'use client';
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { Song, AudioQuality } from '@/types/music';
 import type { LyricLine } from '@/types/music';
 import { normalizeMediaUrl } from '@/lib/media';
@@ -132,11 +132,16 @@ export function BetterPlayer({
   // Full AMLL 进度条：BouncingSlider 是「半受控」组件，播放时靠内部 useAnimationFrame
   // 按 delta(ms) 自增 localTimeRef 渲染，故 value/min/max 必须用毫秒单位；
   // value 只作为离散校正基准（切歌 / seek 后），不能跟随 currentTime 连续变化。
+  // BouncingSlider 内部 useEffect 仅在 [value,min,max] 变化时才把 value 同步到 localTimeRef，
+  // 因此切歌时若 sliderValueMs 仍为 0（未 seek 过），同步不会触发，localTimeRef 会从上首歌
+  // 残留值继续自增 → 进度条秒满。解决：用 key={songId} 强制重新挂载重置 localTimeRef，
+  // 并在 render 阶段（而非 useEffect）重置 sliderValueMs，避免挂载首帧读到旧值。
   const [sliderValueMs, setSliderValueMs] = useState(0);
-  // 切歌时重置校正基准为 0
-  useEffect(() => {
+  const prevSongIdRef = useRef(songId);
+  if (prevSongIdRef.current !== songId) {
+    prevSongIdRef.current = songId;
     setSliderValueMs(0);
-  }, [songId]);
+  }
 
   const handleProgressPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -340,6 +345,7 @@ export function BetterPlayer({
             </div>
           }>
             <AmllFullSlider
+              key={songId}
               className="better-player-progress-amll"
               value={sliderValueMs}
               min={0}
