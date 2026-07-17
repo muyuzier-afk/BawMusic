@@ -79,6 +79,12 @@ interface UsePlayerReturn {
   movePlaylistItem: (fromIndex: number, toIndex: number) => void;
   removePlaylistItem: (index: number) => void;
   removePlaylistItems: (indices: number[]) => void;
+  /**
+   * 从历史记录中彻底移除一首歌（按 songId）。
+   * 用于"歌不在当前播放列表但可能在历史记录中"的删除场景，
+   * 避免 ensurePlaylistByHistory 将已删除的歌重新加回播放列表。
+   */
+  removeSongFromHistory: (songId: number) => void;
   clearNotice: () => void;
   showNotice: (message: string) => void;
   /**
@@ -906,6 +912,15 @@ export function usePlayer(): UsePlayerReturn {
     setCurrentIndex(Math.max(0, nextCurrentIndex));
   }, [playlist, currentIndex, loadSong, updateHistory]);
 
+  const removeSongFromHistory = useCallback((songId: number) => {
+    setHistoryRecords(prev => prev.filter(song => song.id !== songId));
+    // 同步清理播放范围 ref，防止 scope 仍引用已删除歌曲
+    if (scopeSongIdsRef.current) {
+      const next = scopeSongIdsRef.current.filter(id => id !== songId);
+      scopeSongIdsRef.current = next.length > 0 ? next : null;
+    }
+  }, []);
+
   const clearPlaylist = useCallback(() => {
     setPlaylist([]);
     setCurrentIndex(-1);
@@ -915,6 +930,8 @@ export function usePlayer(): UsePlayerReturn {
     setDuration(0);
     setIsPlaying(false);
     setNotice(null);
+    // 同步清空历史记录，避免 ensurePlaylistByHistory 将已清空的歌重新加回列表
+    setHistoryRecords([]);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = '';
@@ -1007,6 +1024,7 @@ export function usePlayer(): UsePlayerReturn {
     removePlaylistItem,
     clearPlaylist,
     removePlaylistItems,
+    removeSongFromHistory,
     playAt,
     clearNotice,
     showNotice,

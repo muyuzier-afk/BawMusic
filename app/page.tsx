@@ -59,6 +59,7 @@ export default function MusicPlayer() {
     movePlaylistItem,
     removePlaylistItem,
     removePlaylistItems,
+    removeSongFromHistory,
     clearPlaylist,
     addToPlaylist,
     clearNotice,
@@ -682,6 +683,9 @@ export default function MusicPlayer() {
                   onRemove={(id) => {
                     const idx = playlist.findIndex((s) => s.id === id);
                     if (idx >= 0) removePlaylistItem(idx);
+                    // 无论歌是否在当前播放列表，都从历史记录中清理，
+                    // 否则 ensurePlaylistByHistory 会把它重新加回播放列表
+                    removeSongFromHistory(id);
                     removeSongFromAllFolders(id);
                   }}
                   onClear={() => {
