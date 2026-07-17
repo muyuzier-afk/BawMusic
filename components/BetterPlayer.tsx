@@ -129,6 +129,13 @@ export function BetterPlayer({
   // 进度条拖拽
   const [isDragging, setIsDragging] = useState(false);
   const [dragPercent, setDragPercent] = useState<number | null>(null);
+  // Full AMLL 进度条：松手 seek 后立即同步 value，避免内部 useAnimationFrame 空窗期自增导致"往前冲又回去"
+  const [pendingSeek, setPendingSeek] = useState<number | null>(null);
+  // currentTime 追上 pendingSeek 后清空，恢复由 currentTime 驱动
+  useEffect(() => {
+    if (pendingSeek === null) return;
+    if (Math.abs(currentTime - pendingSeek) < 0.5) setPendingSeek(null);
+  }, [currentTime, pendingSeek]);
 
   const handleProgressPointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -333,12 +340,12 @@ export function BetterPlayer({
           }>
             <AmllFullSlider
               className="better-player-progress-amll"
-              value={Math.min(currentTime, duration)}
+              value={Math.min(pendingSeek ?? currentTime, duration)}
               min={0}
               max={duration}
               isPlaying={isPlaying}
               onBeforeChange={() => setIsDragging(true)}
-              onAfterChange={(v) => { onSeek(v); setIsDragging(false); }}
+              onAfterChange={(v) => { setPendingSeek(v); onSeek(v); setIsDragging(false); }}
               onSeeking={(seeking) => setIsDragging(seeking)}
             />
           </Suspense>
