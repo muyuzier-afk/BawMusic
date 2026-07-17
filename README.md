@@ -4,7 +4,7 @@
 
 一个网页音乐播放器，专注歌词阅读体验，支持双 API 源自动降级，可打包为 Android APK。
 
-在线访问：[eo.bawmusic.top](https://eo.bawmusic.top)
+在线访问：[bawmusic.top](https://bawmusic.top)
 
 ## 功能
 
