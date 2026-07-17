@@ -7,7 +7,7 @@ import { normalizeMediaUrl } from '@/lib/media';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
 import { AmllLyrics } from './AmllLyrics';
 
-// Full AMLL 增量借用组件：仅在 useFullAmll 开启时动态加载，避免默认打包
+// Full AMLL 增量借用组件：Better Styles 开启时由父级传入 useFullAmll=true 触发动态加载，避免默认打包
 const AmllFullCover = lazy(() => import('@applemusic-like-lyrics/react-full').then(m => ({ default: m.Cover })));
 const AmllFullSlider = lazy(() => import('@applemusic-like-lyrics/react-full').then(m => ({ default: m.BouncingSlider })));
 const AmllFullVolume = lazy(() => import('@applemusic-like-lyrics/react-full').then(m => ({ default: m.VolumeControl })));
@@ -53,7 +53,7 @@ interface BetterPlayerProps {
   variant?: 'fullscreen' | 'panel';
   /** 最小化状态变化回调（仅 fullscreen 模式触发），供父级恢复 top-bar 等控件 */
   onMinimizedChange?: (minimized: boolean) => void;
-  /** Full AMLL：开启后增量借用 react-full 的 Cover/BouncingSlider/VolumeControl */
+  /** 启用 Full AMLL 控件（Cover/BouncingSlider/VolumeControl），由 Better Styles 开关驱动 */
   useFullAmll?: boolean;
 }
 

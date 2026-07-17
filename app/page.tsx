@@ -125,15 +125,8 @@ export default function MusicPlayer() {
     return init ? init.betterStyles === true : true;
   });
   const [betterStylesHydrated, setBetterStylesHydrated] = useState(false);
-  // Full AMLL：增量借用 @applemusic-like-lyrics/react-full 的控件（进度条/封面/音量）
-  // 可与 Better Styles 同时开启，默认关闭
-  const [fullAmll, setFullAmll] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return (window as any).__BAW_INIT__?.fullAmll === true;
-  });
-  const [fullAmllHydrated, setFullAmllHydrated] = useState(false);
 
-  // 读取 LiquidFlow / Better Styles / Full AMLL 持久化状态 + 检测移动端
+  // 读取 LiquidFlow / Better Styles 持久化状态 + 检测移动端
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -143,13 +136,9 @@ export default function MusicPlayer() {
       const storedBs = window.localStorage.getItem('bawmusic:better-styles');
       if (storedBs === '0') setBetterStyles(false);
       else setBetterStyles(true);
-      // Full AMLL 默认关闭：仅当显式存 '1' 才开启
-      const storedFa = window.localStorage.getItem('bawmusic:full-amll');
-      setFullAmll(storedFa === '1');
     } catch { /* ignore */ }
     setLiquidFlowHydrated(true);
     setBetterStylesHydrated(true);
-    setFullAmllHydrated(true);
     const computeMobile = () =>
       window.matchMedia('(max-width: 768px)').matches || typeof window.orientation !== 'undefined';
     setIsMobile(computeMobile());
@@ -166,36 +155,18 @@ export default function MusicPlayer() {
     document.body.classList.toggle('better-styles', betterStyles);
   }, [betterStyles]);
 
-  // Full AMLL 开关同步到 body class
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.body.classList.toggle('full-amll', fullAmll);
-  }, [fullAmll]);
-
-  // Better Styles 开启时预热 AMLL/PIXI bundle，避免首次播放时液态背景加载慢
+  // Better Styles 开启时预热 AMLL/PIXI bundle 与 react-full 控件 bundle，
+  // 避免首次播放时液态背景 / Cover/BouncingSlider/VolumeControl 加载慢
   useEffect(() => {
     if (!betterStyles) return;
     void import('@applemusic-like-lyrics/react');
-  }, [betterStyles]);
-
-  // Full AMLL 开启时预热 react-full bundle，避免首次播放控件加载慢
-  useEffect(() => {
-    if (!fullAmll) return;
     void import('@applemusic-like-lyrics/react-full');
-  }, [fullAmll]);
+  }, [betterStyles]);
 
   const handleToggleBetterStyles = useCallback(() => {
     setBetterStyles(prev => {
       const next = !prev;
       try { window.localStorage.setItem('bawmusic:better-styles', next ? '1' : '0'); } catch { /* ignore */ }
-      return next;
-    });
-  }, []);
-
-  const handleToggleFullAmll = useCallback(() => {
-    setFullAmll(prev => {
-      const next = !prev;
-      try { window.localStorage.setItem('bawmusic:full-amll', next ? '1' : '0'); } catch { /* ignore */ }
       return next;
     });
   }, []);
@@ -851,7 +822,7 @@ export default function MusicPlayer() {
             showDownload={Boolean(currentSong)}
             isLoading={isLoading}
             variant="panel"
-            useFullAmll={fullAmll}
+            useFullAmll={betterStyles}
           />
         )}
       </div>
@@ -1032,18 +1003,6 @@ export default function MusicPlayer() {
                 >
                   <span className="about-mini-toggle-label">Better Styles (Beta)</span>
                   <span className={`about-mini-toggle-switch ${betterStyles ? 'on' : ''}`} aria-hidden="true">
-                    <span className="about-mini-toggle-knob" />
-                  </span>
-                </button>
-              )}
-              {fullAmllHydrated && (
-                <button
-                  type="button"
-                  className={`about-mini-toggle ${fullAmll ? 'active' : ''}`}
-                  onClick={handleToggleFullAmll}
-                >
-                  <span className="about-mini-toggle-label">Full AMLL</span>
-                  <span className={`about-mini-toggle-switch ${fullAmll ? 'on' : ''}`} aria-hidden="true">
                     <span className="about-mini-toggle-knob" />
                   </span>
                 </button>
@@ -1421,7 +1380,7 @@ export default function MusicPlayer() {
           isLoading={isLoading}
           variant="fullscreen"
           onMinimizedChange={setMobilePlayerMinimized}
-          useFullAmll={fullAmll}
+          useFullAmll={betterStyles}
         />
       )}
 

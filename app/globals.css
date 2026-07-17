@@ -4316,8 +4316,8 @@ body.better-styles .sidebar-item {
   touch-action: none;
 }
 
-/* Full AMLL 模式：进度条与上方歌手信息之间留出间距 */
-.full-amll .better-player-progress-wrap {
+/* Better Styles 模式（启用 Full AMLL 控件）：进度条与上方歌手信息之间留出间距 */
+.better-styles .better-player-progress-wrap {
   padding-top: 14px;
 }
 
