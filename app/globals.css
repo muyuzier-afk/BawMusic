@@ -4309,6 +4309,11 @@ body.better-styles .sidebar-item {
   height: 16px;
 }
 
+/* Full AMLL 模式：进度条与上方歌手信息之间留出间距 */
+.full-amll .better-player-progress-wrap {
+  padding-top: 14px;
+}
+
 .better-player-volume-amll {
   flex: 1;
   min-width: 0;

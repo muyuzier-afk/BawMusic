@@ -337,8 +337,8 @@ export function BetterPlayer({
               min={0}
               max={duration}
               isPlaying={isPlaying}
-              changeOnDrag
-              onChange={(v) => onSeek(v)}
+              onBeforeChange={() => setIsDragging(true)}
+              onAfterChange={(v) => { onSeek(v); setIsDragging(false); }}
               onSeeking={(seeking) => setIsDragging(seeking)}
             />
           </Suspense>
