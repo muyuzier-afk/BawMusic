@@ -17,7 +17,7 @@ import { BetterPlaylistSheet } from '@/components/BetterPlaylistSheet';
 import { DownloadMenu } from '@/components/DownloadMenu';
 import { Sidebar } from '@/components/Sidebar';
 import { Song, AudioQuality } from '@/types/music';
-import { ListIcon, ImportIcon, UploadIcon, SearchIcon } from '@/components/Icons';
+import { ListIcon, ImportIcon, SearchIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
@@ -28,10 +28,6 @@ import type { BuildInfo, VersionsFile } from '@/lib/build-info-types';
 
 const build: BuildInfo = buildInfo as BuildInfo;
 const versionsFile: VersionsFile = versionsData as VersionsFile;
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 export default function MusicPlayer() {
   const repositoryUrl = 'https://github.com/muyuzier-afk/BawMusic';
@@ -95,12 +91,10 @@ export default function MusicPlayer() {
   const [importOpen, setImportOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importBusy, setImportBusy] = useState(false);
-  const [importJsonBusy, setImportJsonBusy] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [fullscreenSearchOpen, setFullscreenSearchOpen] = useState(false);
   const handledSharedSongRef = useRef<number | null>(null);
   const playSongByIdRef = useRef(playSongById);
-  const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const titleClickCountRef = useRef(0);
   const titleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [devUnlocked, setDevUnlocked] = useState(false);
@@ -490,75 +484,6 @@ export default function MusicPlayer() {
       setFatalError(message);
     }
   }, [playlist, showNotice]);
-
-  const handleImportJsonFile = useCallback(
-    async (file: File) => {
-      if (importJsonBusy) return;
-      setImportJsonBusy(true);
-      try {
-        const text = await file.text();
-        let parsed: unknown;
-        try {
-          parsed = JSON.parse(text);
-        } catch {
-          throw new Error('JSON 解析失败，请检查文件格式');
-        }
-
-        if (!isObject(parsed)) {
-          throw new Error('JSON 文件格式不正确');
-        }
-
-        const songsRaw = (parsed as { songs?: unknown }).songs;
-        if (!Array.isArray(songsRaw)) {
-          throw new Error('JSON 中未找到 songs 数组');
-        }
-
-        const songs: Song[] = [];
-        const seen = new Set<number>();
-        for (const entry of songsRaw) {
-          if (!isObject(entry)) continue;
-          const candidate = entry as Partial<Song>;
-          if (
-            typeof candidate.id === 'number' &&
-            typeof candidate.name === 'string' &&
-            typeof candidate.artists === 'string' &&
-            typeof candidate.album === 'string' &&
-            typeof candidate.picUrl === 'string'
-          ) {
-            if (seen.has(candidate.id)) continue;
-            seen.add(candidate.id);
-            songs.push({
-              id: candidate.id,
-              name: candidate.name,
-              artists: candidate.artists,
-              album: candidate.album,
-              picUrl: candidate.picUrl
-            });
-          }
-        }
-
-        if (songs.length === 0) {
-          throw new Error('JSON 中没有可识别的歌曲数据');
-        }
-
-        clearPlaylist();
-        for (const song of songs) {
-          addToPlaylist(song);
-        }
-        showNotice(`已从 JSON 导入 ${songs.length} 首歌曲`);
-        setImportOpen(false);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : '导入失败，请稍后重试';
-        setFatalError(message);
-      } finally {
-        setImportJsonBusy(false);
-        if (importFileInputRef.current) {
-          importFileInputRef.current.value = '';
-        }
-      }
-    },
-    [importJsonBusy, showNotice, clearPlaylist, addToPlaylist]
-  );
 
   const handleChangeApiSource = useCallback((_source: 'main' | 'backup') => {
     // 源切换已移除，固定使用 main
@@ -992,10 +917,15 @@ export default function MusicPlayer() {
               关闭
             </button>
 
-            <h2 className="details-title">导入播放列表</h2>
-            <p className="details-subtitle">通过歌单链接或 JSON 文件导入，导入时会清空当前列表</p>
+            <div className="import-hero" aria-hidden="true">
+              <span className="import-hero-icon">
+                <ImportIcon size={28} />
+              </span>
+            </div>
 
-            <h3 className="import-section-title">从网易云歌单导入</h3>
+            <h2 className="details-title import-title">导入播放列表</h2>
+            <p className="details-subtitle import-subtitle">粘贴网易云歌单链接，导入后会清空当前列表</p>
+
             <div className="import-field">
               <input
                 className="import-input"
@@ -1026,41 +956,7 @@ export default function MusicPlayer() {
               </button>
             </div>
 
-            <div className="import-divider">
-              <span>或</span>
-            </div>
-
-            <h3 className="import-section-title">从 JSON 文件导入</h3>
-            <p className="import-hint">选择之前导出的 JSON 文件，将覆盖当前列表</p>
-            <input
-              ref={importFileInputRef}
-              type="file"
-              accept="application/json,.json"
-              style={{ display: 'none' }}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void handleImportJsonFile(file);
-                }
-              }}
-            />
-            <div className="import-field">
-              <button
-                className="import-btn import-btn-wide"
-                onClick={() => importFileInputRef.current?.click()}
-                disabled={importJsonBusy}
-                type="button"
-              >
-                {importJsonBusy ? (
-                  <span className="loading-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                ) : (
-                  <>
-                    <UploadIcon size={16} />
-                    选择 JSON 文件
-                  </>
-                )}
-              </button>
-            </div>
+            <p className="import-hint">支持 music.163.com 歌单链接，导入时自动去重</p>
           </section>
         </div>
       )}
