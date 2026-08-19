@@ -3,6 +3,18 @@
   "current": "bb76de3",
   "versions": [
     {
+      "sha": "c1570c8",
+      "date": "2026-08-19T19:44:54Z",
+      "title": "移除双源自动冗余并适配新 ChKSz API 多音乐源",
+      "highlights": [
+        "移除双 API 源自动降级逻辑，改为手动选择音乐源",
+        "适配 api.chksz.com 新接口：首次进入填写 ChKSz API Key 并持久化，可在设置中修改",
+        "新增酷狗(kugou)与 QQ 音乐(qq) 源，支持搜索、播放、歌词与下载",
+        "搜索界面可手动切换网易云/酷狗/QQ 音乐源，结果按所选源返回",
+        "分享链接携带 source 参数，可还原到原音乐源"
+      ]
+    },
+    {
       "sha": "bb76de3",
       "date": "2026-07-17T00:00:00Z",
       "title": "PC 端 Better Styles 三栏布局",
