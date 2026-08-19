@@ -1,5 +1,5 @@
 import { getMusicInfo } from './api';
-import type { AudioQuality } from '@/types/music';
+import type { AudioQuality, MusicSource } from '@/types/music';
 
 const LOSS_LIKE_LEVELS = new Set(['lossless', 'hires', 'jymaster', 'sky', 'jyeffect']);
 const COMPRESSED_LEVELS = new Set(['standard', 'exhigh']);
@@ -69,8 +69,9 @@ export async function downloadFromUrl(url: string, filename: string): Promise<vo
 }
 
 export interface DownloadSongArgs {
-  songId: number;
+  songId: string;
   quality: AudioQuality;
+  source: MusicSource;
   artists: string;
   name: string;
   onProgress?: (message: string) => void;
@@ -79,12 +80,13 @@ export interface DownloadSongArgs {
 export async function downloadSongAtQuality({
   songId,
   quality,
+  source,
   artists,
   name,
   onProgress
 }: DownloadSongArgs): Promise<void> {
   onProgress?.('正在准备下载…');
-  const info = await getMusicInfo(songId, quality);
+  const info = await getMusicInfo(songId, quality, source);
   if (!info.url) {
     throw new Error('该音质暂不可用');
   }

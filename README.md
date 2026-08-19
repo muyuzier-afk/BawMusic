@@ -2,7 +2,7 @@
 
 ![BawMusic](./public/logo.png)
 
-一个以歌词体验为核心的网页音乐播放器，支持双 API 源自动降级、网易云歌单导入、音乐库文件夹管理，可打包为 Android APK。
+一个以歌词体验为核心的网页音乐播放器，支持网易云 / 酷狗 / QQ 音乐多源搜索、网易云歌单导入、音乐库文件夹管理，可打包为 Android APK。
 
 在线访问：[bawmusic.top](https://bawmusic.top)
 
@@ -26,7 +26,7 @@
 
 ### 播放器引擎
 
-- **双 API 源**（MAIN + BACKUP），请求失败自动降级，源选择持久化到 `localStorage`
+- **三音乐源**：网易云 / 酷狗 / QQ 音乐，搜索时手动选择源，ChKSz API 鉴权（`apikey` 首次进入时填写，localStorage 持久化，可在设置中修改）
 - **码率选择**：standard / exhigh / lossless / hires / jymaster / sky / jyeffect
 - **去重入队**：`playSong` / `addToPlaylist` / `playSongById` 三处按 ID 去重，避免重复条目
 - **历史记录续播**：播放列表播完时自动从历史记录延续，删除歌曲时同步清理历史避免"秽土转生"
@@ -140,15 +140,15 @@ scripts/
 
 | 源 | 提供方 | 说明 |
 | --- | --- | --- |
-| MAIN | [chksz.top](https://api.chksz.top/) | 默认源，接口稳定 |
-| BACKUP | [t8.php](https://dev.ciallo.pp.ua/music/t8.php) + meting | MAIN 失败时自动降级 |
+| 网易云 | [ChKSz API](https://api.chksz.com/) | 搜索 / 音乐解析 / 歌词 / 歌单，须携带 `apikey` 鉴权 |
+| 酷狗 | [ChKSz API](https://api.chksz.com/) | `kugou_music` 点歌接口，搜索后按歌曲 ID 解析 |
+| QQ 音乐 | [ChKSz API](https://api.chksz.com/) | `qq_music` 点歌接口，搜索后按歌曲 mid 解析 |
 
-`lib/api.ts` 内的 `searchSongs` / `getMusicInfo` / `getLyric` / `fetchPlaylist` 都先按当前源请求，失败后尝试另一个源，源选择存到 `localStorage` key `bawmusic.apiSource`。
+`lib/api.ts` 内的 `searchSongs` / `getMusicInfo` / `getLyric` 按歌曲所属源路由请求；歌单导入走网易云 `fetchPlaylist`。用户需要在 `api.chksz.com` 登录获取个人 `apikey`，首次进入界面时填写并持久化到 `localStorage` key `bawmusic.chkszApiKey`，可在设置中修改。
 
 ## 致谢
 
-- [chksz.top](https://api.chksz.top/) — MAIN API 源
-- [t8.php](https://dev.ciallo.pp.ua/music/t8.php) 和 meting — BACKUP API 源
+- [ChKSz API](https://api.chksz.com/) — 网易云 / 酷狗 / QQ 音乐 API 源
 - [Linux.do](https://linux.do/) 社区的反馈
 - [AMLL (Apple Music-like Lyrics)](https://github.com/amll-dev/applemusic-like-lyrics) — 流体背景、歌词组件与 Full AMLL 组件均基于此项目
 

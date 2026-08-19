@@ -21,7 +21,7 @@ import { ListIcon, ImportIcon, SearchIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
-import { fetchPlaylist, extractPlaylistId } from '@/lib/api';
+import { fetchPlaylist, extractPlaylistId, useApiKey, setApiKey, hasApiKey } from '@/lib/api';
 import buildInfo from '@/lib/build-info.json';
 import versionsData from '@/versions.json';
 import type { BuildInfo, VersionsFile } from '@/lib/build-info-types';
@@ -67,7 +67,6 @@ export default function MusicPlayer() {
     setPlaybackScope
   } = usePlayer();
 
-  const apiSource = 'main';
   const {
     folders,
     createFolder,
@@ -94,7 +93,7 @@ export default function MusicPlayer() {
   const [importBusy, setImportBusy] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [fullscreenSearchOpen, setFullscreenSearchOpen] = useState(false);
-  const handledSharedSongRef = useRef<number | null>(null);
+  const handledSharedSongRef = useRef<string | null>(null);
   const playSongByIdRef = useRef(playSongById);
   const titleClickCountRef = useRef(0);
   const titleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -106,6 +105,11 @@ export default function MusicPlayer() {
   const [devJumpIndex, setDevJumpIndex] = useState('');
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
+  // ChKSz API Key：首次进入引导填写，localStorage 持久化，可在设置中修改
+  const apiKey = useApiKey();
+  const [apiKeyHydrated, setApiKeyHydrated] = useState(false);
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
+  const [apiKeyDraft, setApiKeyDraft] = useState('');
   // LiquidFlow Styles：手机端陀螺仪驱动背景液体流动
   // 初始值优先读取内联脚本注入的 window.__BAW_INIT__，避免首屏闪现
   const [liquidFlow, setLiquidFlow] = useState(() => {
@@ -286,6 +290,31 @@ export default function MusicPlayer() {
     setDevHydrated(true);
   }, []);
 
+  // ChKSz API Key：首帧 hydration 后若未设置，弹出引导填写
+  useEffect(() => {
+    setApiKeyHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!apiKeyHydrated) return;
+    if (!hasApiKey()) {
+      setApiKeyDraft('');
+      setApiKeyDialogOpen(true);
+    }
+  }, [apiKeyHydrated]);
+
+  const handleSaveApiKey = useCallback(() => {
+    const key = apiKeyDraft.trim();
+    if (!key) {
+      showNotice('请输入有效的 ChKSz API Key');
+      return;
+    }
+    setApiKey(key);
+    setApiKeyDraft('');
+    setApiKeyDialogOpen(false);
+    showNotice('API Key 已保存');
+  }, [apiKeyDraft, showNotice]);
+
   // 解锁开发者模式：写入 localStorage 并打开菜单
   const unlockDevMode = useCallback(() => {
     setDevUnlocked(true);
@@ -362,7 +391,7 @@ export default function MusicPlayer() {
   
   const handlePlaySong = useCallback((song: Song) => {
     // 搜索点歌默认加入音乐库（与播放队列共用的 playlist），已存在则直接定位播放
-    void playSongById(song.id);
+    void playSongById(song.id, song.source);
   }, [playSongById]);
 
   const handleDownloadClick = useCallback((event: MouseEvent<HTMLElement>) => {
@@ -384,6 +413,7 @@ export default function MusicPlayer() {
       await downloadSongAtQuality({
         songId: currentSong.id,
         quality,
+        source: currentSong.source,
         artists: currentSong.artists,
         name: currentSong.name
       });
@@ -457,10 +487,6 @@ export default function MusicPlayer() {
     }
   }, [playlist, showNotice]);
 
-  const handleChangeApiSource = useCallback((_source: 'main' | 'backup') => {
-    // 源切换已移除，固定使用 main
-  }, []);
-
   useEffect(() => {
     if (!currentSong) {
       setDownloadMenuOpen(false);
@@ -473,6 +499,9 @@ export default function MusicPlayer() {
 
     const url = new URL(window.location.href);
     url.searchParams.set('song', String(currentSong.id));
+    if (currentSong.source && currentSong.source !== 'netease') {
+      url.searchParams.set('source', currentSong.source);
+    }
     const shareText = `分享给你一首好歌！链接 ${url.toString()}`;
 
     const copyWithFallback = async () => {
@@ -551,11 +580,14 @@ export default function MusicPlayer() {
     if (typeof window === 'undefined') return;
 
     const handleSongParam = () => {
-      const songId = Number(new URL(window.location.href).searchParams.get('song'));
-      if (!Number.isFinite(songId) || songId <= 0 || handledSharedSongRef.current === songId) return;
+      const url = new URL(window.location.href);
+      const songIdRaw = url.searchParams.get('song');
+      if (!songIdRaw || handledSharedSongRef.current === songIdRaw) return;
+      const sourceParam = url.searchParams.get('source');
+      const sharedSource = sourceParam === 'kugou' || sourceParam === 'qq' ? sourceParam : 'netease';
 
-      handledSharedSongRef.current = songId;
-      void playSongByIdRef.current(songId);
+      handledSharedSongRef.current = songIdRaw;
+      void playSongByIdRef.current(songIdRaw, sharedSource);
     };
 
     handleSongParam();
@@ -571,6 +603,11 @@ export default function MusicPlayer() {
 
     const url = new URL(window.location.href);
     url.searchParams.set('song', String(currentSong.id));
+    if (currentSong.source && currentSong.source !== 'netease') {
+      url.searchParams.set('source', currentSong.source);
+    } else {
+      url.searchParams.delete('source');
+    }
     handledSharedSongRef.current = currentSong.id;
     window.history.replaceState({}, '', url.toString());
   }, [currentSong?.id]);
@@ -1010,7 +1047,78 @@ export default function MusicPlayer() {
                   </span>
                 </button>
               )}
+              {apiKeyHydrated && (
+                <button
+                  type="button"
+                  className={`about-mini-toggle ${hasApiKey() ? 'active' : ''}`}
+                  onClick={() => {
+                    setApiKeyDraft(hasApiKey() ? apiKey : '');
+                    setApiKeyDialogOpen(true);
+                  }}
+                >
+                  <span className="about-mini-toggle-label">API Key</span>
+                  <span className={`about-mini-toggle-switch ${hasApiKey() ? 'on' : ''}`} aria-hidden="true">
+                    <span className="about-mini-toggle-knob" />
+                  </span>
+                </button>
+              )}
             </div>
+          </section>
+        </div>
+      )}
+
+      {apiKeyDialogOpen && (
+        <div
+          className="details-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="ChKSz API Key 设置"
+          onClick={() => {
+            if (hasApiKey()) setApiKeyDialogOpen(false);
+          }}
+        >
+          <section
+            className="details-card glass-strong details-card-apikey"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {hasApiKey() && (
+              <button className="details-close" onClick={() => setApiKeyDialogOpen(false)} type="button">
+                关闭
+              </button>
+            )}
+
+            <h2 className="details-title">设置 ChKSz API Key</h2>
+            <p className="details-subtitle">
+              新版 ChKSz API 需要 <code>apikey</code> 鉴权，请在 api.chksz.com 登录后获取个人密钥并填入。
+            </p>
+
+            <div className="import-field apikey-field">
+              <input
+                className="import-input"
+                type="password"
+                placeholder="粘贴你的 ChKSz API Key"
+                value={apiKeyDraft}
+                onChange={(e) => setApiKeyDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSaveApiKey();
+                  }
+                }}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+              />
+              <button
+                className="import-btn"
+                onClick={handleSaveApiKey}
+                disabled={!apiKeyDraft.trim()}
+              >
+                保存
+              </button>
+            </div>
+
+            <p className="import-hint">Key 仅保存在浏览器本地（localStorage），可在设置中随时修改。</p>
           </section>
         </div>
       )}
@@ -1104,10 +1212,6 @@ export default function MusicPlayer() {
                   <code className="devmenu-item-value">
                     {new Date(build.date).toLocaleString('zh-CN', { hour12: false })}
                   </code>
-                </li>
-                <li className="devmenu-item">
-                  <span className="devmenu-item-label">API 源</span>
-                  <code className="devmenu-item-value">{apiSource}</code>
                 </li>
                 <li className="devmenu-item">
                   <span className="devmenu-item-label">播放列表</span>
@@ -1299,7 +1403,6 @@ export default function MusicPlayer() {
                           {
                             sha: build.sha,
                             date: build.date,
-                            apiSource,
                             playlistLength: playlist.length,
                             currentIndex,
                             currentSong: currentSong

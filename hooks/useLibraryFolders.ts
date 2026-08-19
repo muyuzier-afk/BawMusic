@@ -7,7 +7,7 @@ const STORAGE_FOLDERS_KEY = 'bawmusic:library-folders';
 export interface LibraryFolder {
   id: string;
   name: string;
-  songIds: number[];
+  songIds: string[];
 }
 
 function genId(): string {
@@ -27,16 +27,23 @@ function isFolder(value: unknown): value is LibraryFolder {
   return typeof f.id === 'string'
     && typeof f.name === 'string'
     && Array.isArray(f.songIds)
-    && f.songIds.every((id) => typeof id === 'number');
+    && f.songIds.every((id) => typeof id === 'string' || typeof id === 'number');
 }
 
 function isFolderList(value: unknown): value is LibraryFolder[] {
   return Array.isArray(value) && value.every(isFolder);
 }
 
-function dedupeSongIds(ids: number[]): number[] {
-  const seen = new Set<number>();
-  const out: number[] = [];
+function normalizeFolder(folder: LibraryFolder): LibraryFolder {
+  return {
+    ...folder,
+    songIds: folder.songIds.map((id) => String(id))
+  };
+}
+
+function dedupeSongIds(ids: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
   for (const id of ids) {
     if (seen.has(id)) continue;
     seen.add(id);
@@ -47,22 +54,22 @@ function dedupeSongIds(ids: number[]): number[] {
 
 export interface UseLibraryFoldersReturn {
   folders: LibraryFolder[];
-  createFolder: (songIds: number[], name?: string) => string;
+  createFolder: (songIds: string[], name?: string) => string;
   renameFolder: (id: string, name: string) => void;
   deleteFolder: (id: string) => void;
-  addSongToFolder: (folderId: string, songId: number) => void;
-  removeSongFromFolder: (folderId: string, songId: number) => void;
+  addSongToFolder: (folderId: string, songId: string) => void;
+  removeSongFromFolder: (folderId: string, songId: string) => void;
   /** 删除音乐库歌曲时，同步清理所有文件夹中对它的引用 */
-  removeSongFromAllFolders: (songId: number) => void;
+  removeSongFromAllFolders: (songId: string) => void;
   /** 清空所有文件夹（清空音乐库时调用） */
   clearAllFolders: () => void;
   /** 文件夹内重排序：把 songId 移到 targetId 之前/之后 */
-  reorderInFolder: (folderId: string, songId: number, targetId: number, position: 'before' | 'after') => void;
+  reorderInFolder: (folderId: string, songId: string, targetId: string, position: 'before' | 'after') => void;
   /**
    * 把一首歌从 fromFolderId 移到 toFolderId。
    * fromFolderId=null 表示原为散落歌曲；toFolderId=null 表示移出文件夹变散落。
    */
-  moveSongToFolder: (fromFolderId: string | null, toFolderId: string | null, songId: number) => void;
+  moveSongToFolder: (fromFolderId: string | null, toFolderId: string | null, songId: string) => void;
 }
 
 export function useLibraryFolders(): UseLibraryFoldersReturn {
@@ -76,7 +83,10 @@ export function useLibraryFolders(): UseLibraryFoldersReturn {
       if (!raw) return;
       const parsed = JSON.parse(raw) as unknown;
       if (isFolderList(parsed)) {
-        setFolders(parsed.map((f) => ({ ...f, songIds: dedupeSongIds(f.songIds) })));
+        setFolders(parsed.map((f) => {
+          const normalized = normalizeFolder(f);
+          return { ...normalized, songIds: dedupeSongIds(normalized.songIds) };
+        }));
       }
     } catch {
       /* ignore */
@@ -93,7 +103,7 @@ export function useLibraryFolders(): UseLibraryFoldersReturn {
     }
   }, [folders]);
 
-  const createFolder = useCallback((songIds: number[], name?: string): string => {
+  const createFolder = useCallback((songIds: string[], name?: string): string => {
     const id = genId();
     const folder: LibraryFolder = {
       id,
@@ -114,7 +124,7 @@ export function useLibraryFolders(): UseLibraryFoldersReturn {
     setFolders((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
-  const addSongToFolder = useCallback((folderId: string, songId: number) => {
+  const addSongToFolder = useCallback((folderId: string, songId: string) => {
     setFolders((prev) => prev.map((f) => {
       if (f.id !== folderId) {
         // 从其它文件夹移除（一首歌只能在一个文件夹或散落）
@@ -128,13 +138,13 @@ export function useLibraryFolders(): UseLibraryFoldersReturn {
     }));
   }, []);
 
-  const removeSongFromFolder = useCallback((folderId: string, songId: number) => {
+  const removeSongFromFolder = useCallback((folderId: string, songId: string) => {
     setFolders((prev) => prev.map((f) => (
       f.id === folderId ? { ...f, songIds: f.songIds.filter((sid) => sid !== songId) } : f
     )));
   }, []);
 
-  const removeSongFromAllFolders = useCallback((songId: number) => {
+  const removeSongFromAllFolders = useCallback((songId: string) => {
     setFolders((prev) => prev.map((f) => (
       f.songIds.includes(songId) ? { ...f, songIds: f.songIds.filter((sid) => sid !== songId) } : f
     )));
@@ -144,7 +154,7 @@ export function useLibraryFolders(): UseLibraryFoldersReturn {
     setFolders([]);
   }, []);
 
-  const reorderInFolder = useCallback((folderId: string, songId: number, targetId: number, position: 'before' | 'after') => {
+  const reorderInFolder = useCallback((folderId: string, songId: string, targetId: string, position: 'before' | 'after') => {
     if (songId === targetId) return;
     setFolders((prev) => prev.map((f) => {
       if (f.id !== folderId) return f;
@@ -158,7 +168,7 @@ export function useLibraryFolders(): UseLibraryFoldersReturn {
     }));
   }, []);
 
-  const moveSongToFolder = useCallback((fromFolderId: string | null, toFolderId: string | null, songId: number) => {
+  const moveSongToFolder = useCallback((fromFolderId: string | null, toFolderId: string | null, songId: string) => {
     setFolders((prev) => {
       let next = prev;
       // 从源移除

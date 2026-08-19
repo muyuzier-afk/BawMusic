@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Song, MusicInfo, LyricLine, AudioQuality } from '@/types/music';
+import { Song, MusicInfo, LyricLine, AudioQuality, MusicSource } from '@/types/music';
 import { getMusicInfo, getLyric, parseLyric } from '@/lib/api';
 import {
   bindNativeControlListeners,
@@ -39,12 +39,24 @@ function isSongList(value: unknown): value is Song[] {
   return value.every((song) => {
     if (!song || typeof song !== 'object') return false;
     const candidate = song as Partial<Song>;
-    return typeof candidate.id === 'number'
+    return (typeof candidate.id === 'number' || typeof candidate.id === 'string')
       && typeof candidate.name === 'string'
       && typeof candidate.artists === 'string'
       && typeof candidate.album === 'string'
       && typeof candidate.picUrl === 'string';
   });
+}
+
+// 兼容历史 localStorage 数据：id 可能为 number、source 缺失（默认 netease）
+function normalizeSong(song: Song): Song {
+  return {
+    id: String(song.id),
+    name: song.name,
+    artists: song.artists,
+    album: song.album,
+    picUrl: song.picUrl,
+    source: song.source || 'netease'
+  };
 }
 
 interface UsePlayerReturn {
@@ -62,7 +74,7 @@ interface UsePlayerReturn {
   error: string | null;
   notice: string | null;
   playSong: (song: Song) => void;
-  playSongById: (id: number) => Promise<void>;
+  playSongById: (id: string, source?: MusicSource) => Promise<void>;
   togglePlay: () => void;
   play: () => void;
   pause: () => void;
@@ -84,7 +96,7 @@ interface UsePlayerReturn {
    * 用于"歌不在当前播放列表但可能在历史记录中"的删除场景，
    * 避免 ensurePlaylistByHistory 将已删除的歌重新加回播放列表。
    */
-  removeSongFromHistory: (songId: number) => void;
+  removeSongFromHistory: (songId: string) => void;
   clearNotice: () => void;
   showNotice: (message: string) => void;
   /**
@@ -92,7 +104,7 @@ interface UsePlayerReturn {
    * 按给定顺序循环，不会播放范围外的歌曲，也不会回退到历史记录。
    * 传 null 表示无范围限制，恢复默认全列表行为。
    */
-  setPlaybackScope: (ids: number[] | null) => void;
+  setPlaybackScope: (ids: string[] | null) => void;
 }
 
 export function usePlayer(): UsePlayerReturn {
@@ -103,7 +115,7 @@ export function usePlayer(): UsePlayerReturn {
   const playPrevRef = useRef<() => void>(() => {});
   const loadRequestRef = useRef(0);
   // 播放范围：非空时 next/prev 仅在该 songId 序列内循环，不越界、不回退历史
-  const scopeSongIdsRef = useRef<number[] | null>(null);
+  const scopeSongIdsRef = useRef<string[] | null>(null);
   
   const [currentSong, setCurrentSong] = useState<MusicInfo | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -136,7 +148,7 @@ export function usePlayer(): UsePlayerReturn {
       try {
         const parsed = JSON.parse(cachedHistory) as unknown;
         if (isSongList(parsed)) {
-          setHistoryRecords(parsed.slice(0, 120));
+          setHistoryRecords(parsed.map(normalizeSong).slice(0, 120));
         }
       } catch {
         setHistoryRecords([]);
@@ -149,12 +161,13 @@ export function usePlayer(): UsePlayerReturn {
         const parsed = JSON.parse(cachedPlaylist) as unknown;
         if (isSongList(parsed)) {
           // Deduplicate by song id, keeping the first occurrence to preserve order.
-          const seen = new Set<number>();
+          const seen = new Set<string>();
           const deduped: Song[] = [];
           for (const song of parsed) {
-            if (seen.has(song.id)) continue;
-            seen.add(song.id);
-            deduped.push(song);
+            const normalized = normalizeSong(song);
+            if (seen.has(normalized.id)) continue;
+            seen.add(normalized.id);
+            deduped.push(normalized);
           }
           setPlaylist(deduped);
 
@@ -326,10 +339,10 @@ export function usePlayer(): UsePlayerReturn {
     try {
       const musicInfoPromise = options?.resolvedMusicInfo
         ? Promise.resolve(options.resolvedMusicInfo)
-        : getMusicInfo(song.id, audioQualityRef.current);
+        : getMusicInfo(song.id, audioQualityRef.current, song.source);
 
       // 并行获取歌词，不必等待音频/音乐信息
-      const lyricPromise = getLyric(song.id)
+      const lyricPromise = getLyric(song.id, song.source)
         .then((lyricData) => {
           if (requestId !== loadRequestRef.current) return;
           setLyric(parseLyric(lyricData.lrc || '', lyricData.tlyric || '', lyricData.klyric || ''));
@@ -425,18 +438,19 @@ export function usePlayer(): UsePlayerReturn {
     loadSong(song);
   }, [playlist, loadSong, updateHistory]);
 
-  const playSongById = useCallback(async (id: number) => {
+  const playSongById = useCallback(async (id: string, source: MusicSource = 'netease') => {
     setNotice(null);
     setError(null);
 
     try {
-      const musicInfo = await getMusicInfo(id, audioQualityRef.current);
+      const musicInfo = await getMusicInfo(id, audioQualityRef.current, source);
       const song: Song = {
         id: musicInfo.id,
         name: musicInfo.name,
         artists: musicInfo.artists,
         album: musicInfo.album,
-        picUrl: musicInfo.picUrl
+        picUrl: musicInfo.picUrl,
+        source: musicInfo.source
       };
 
       setPlaylist(prev => {
@@ -859,7 +873,7 @@ export function usePlayer(): UsePlayerReturn {
     if (sortedIndices.some(i => i < 0 || i >= playlist.length)) return;
 
     const removedIds = new Set(
-      sortedIndices.map(i => playlist[i]?.id).filter((id): id is number => typeof id === 'number')
+      sortedIndices.map(i => playlist[i]?.id).filter((id): id is string => typeof id === 'string')
     );
     let nextPlaylist = [...playlist];
     let nextCurrentIndex = currentIndex;
@@ -912,7 +926,7 @@ export function usePlayer(): UsePlayerReturn {
     setCurrentIndex(Math.max(0, nextCurrentIndex));
   }, [playlist, currentIndex, loadSong, updateHistory]);
 
-  const removeSongFromHistory = useCallback((songId: number) => {
+  const removeSongFromHistory = useCallback((songId: string) => {
     setHistoryRecords(prev => prev.filter(song => song.id !== songId));
     // 同步清理播放范围 ref，防止 scope 仍引用已删除歌曲
     if (scopeSongIdsRef.current) {
@@ -989,7 +1003,7 @@ export function usePlayer(): UsePlayerReturn {
     setNotice(message);
   }, []);
 
-  const setPlaybackScope = useCallback((ids: number[] | null) => {
+  const setPlaybackScope = useCallback((ids: string[] | null) => {
     scopeSongIdsRef.current = ids && ids.length > 0 ? ids.slice() : null;
   }, []);
 

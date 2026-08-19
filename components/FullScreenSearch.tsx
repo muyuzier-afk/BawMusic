@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Song } from '@/types/music';
+import { Song, MusicSource } from '@/types/music';
 import { searchSongs } from '@/lib/api';
 import { normalizeMediaUrl } from '@/lib/media';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
 import { SearchIcon, CloseIcon } from './Icons';
+import { SourcePicker } from './SourcePicker';
 
 interface FullScreenSearchProps {
   onSongSelect: (song: Song) => void;
@@ -26,6 +27,7 @@ export function FullScreenSearch({ onSongSelect, onClose, limit = 30, inline = f
   const [results, setResults] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [source, setSource] = useState<MusicSource>('netease');
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
@@ -48,7 +50,7 @@ export function FullScreenSearch({ onSongSelect, onClose, limit = 30, inline = f
     }
     setIsLoading(true);
     try {
-      const list = await searchSongs(q, limit);
+      const list = await searchSongs(q, limit, 0, source);
       if (currentRequestId !== requestIdRef.current) return;
       setResults(list);
       setSearched(true);
@@ -60,7 +62,7 @@ export function FullScreenSearch({ onSongSelect, onClose, limit = 30, inline = f
       if (currentRequestId !== requestIdRef.current) return;
       setIsLoading(false);
     }
-  }, [limit]);
+  }, [limit, source]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -135,6 +137,10 @@ export function FullScreenSearch({ onSongSelect, onClose, limit = 30, inline = f
             <CloseIcon size={22} />
           </button>
         )}
+      </div>
+
+      <div className="fullscreen-search-source">
+        <SourcePicker value={source} onChange={setSource} />
       </div>
 
       <div className="fullscreen-search-body">

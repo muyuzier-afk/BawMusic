@@ -1,13 +1,22 @@
+export type MusicSource = 'netease' | 'kugou' | 'qq';
+
+export const MUSIC_SOURCE_LABELS: Record<MusicSource, string> = {
+  netease: '网易云',
+  kugou: '酷狗',
+  qq: 'QQ 音乐'
+};
+
 export interface Song {
-  id: number;
+  id: string;
   name: string;
   artists: string;
   album: string;
   picUrl: string;
+  source: MusicSource;
 }
 
 export interface MusicInfo {
-  id: number;
+  id: string;
   name: string;
   artists: string;
   album: string;
@@ -17,6 +26,7 @@ export interface MusicInfo {
   level: string;
   size: number;
   md5: string;
+  source: MusicSource;
 }
 
 export type AudioQuality = 'standard' | 'exhigh' | 'lossless' | 'hires' | 'jymaster' | 'sky' | 'jyeffect';

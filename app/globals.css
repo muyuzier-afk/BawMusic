@@ -166,6 +166,41 @@ body.immersive-shell {
   position: relative;
 }
 
+.search-source-row {
+  margin-bottom: 8px;
+}
+
+.source-picker {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+
+.source-picker-item {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.source-picker-item:hover {
+  color: var(--color-text);
+}
+
+.source-picker-item--active {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
 .search-input {
   width: 100%;
   padding: 10px 16px 10px 44px;
@@ -3682,6 +3717,30 @@ body.better-styles .sidebar-item {
   flex: 1;
   position: relative;
   max-width: 720px;
+}
+
+.fullscreen-search-source {
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px 0;
+  flex-shrink: 0;
+}
+
+.fullscreen-search-source .source-picker {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.fullscreen-search-source .source-picker-item {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fullscreen-search-source .source-picker-item:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.fullscreen-search-source .source-picker-item--active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 
 .fullscreen-search-icon {

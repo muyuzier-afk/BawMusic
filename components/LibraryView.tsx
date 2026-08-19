@@ -11,16 +11,16 @@ interface LibraryViewProps {
   folders: LibraryFolder[];
   onPlay: (song: Song) => void;
   onPlayAll: () => void;
-  onRemove: (id: number) => void;
+  onRemove: (id: string) => void;
   onClear: () => void;
   onImport: () => void;
-  onCreateFolder: (songIds: number[], name?: string) => string;
+  onCreateFolder: (songIds: string[], name?: string) => string;
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
-  onAddSongToFolder: (folderId: string, songId: number) => void;
-  onRemoveSongFromFolder: (folderId: string, songId: number) => void;
-  onMoveSongToFolder: (fromFolderId: string | null, toFolderId: string | null, songId: number) => void;
-  onReorderInFolder: (folderId: string, songId: number, targetId: number, position: 'before' | 'after') => void;
+  onAddSongToFolder: (folderId: string, songId: string) => void;
+  onRemoveSongFromFolder: (folderId: string, songId: string) => void;
+  onMoveSongToFolder: (fromFolderId: string | null, toFolderId: string | null, songId: string) => void;
+  onReorderInFolder: (folderId: string, songId: string, targetId: string, position: 'before' | 'after') => void;
 }
 
 const LONG_PRESS_MS = 320;
@@ -33,7 +33,7 @@ interface DragGhost {
 }
 
 interface PendingDrag {
-  songIds: number[];
+  songIds: string[];
   fromFolderId: string | null;
   songs: Song[];
   pointerId: number;
@@ -43,7 +43,7 @@ interface PendingDrag {
 }
 
 interface ActiveDrag {
-  songIds: number[];
+  songIds: string[];
   fromFolderId: string | null;
   songs: Song[];
   pointerId: number;
@@ -51,12 +51,12 @@ interface ActiveDrag {
 }
 
 type DropTarget =
-  | { kind: 'song'; songId: number; position: 'before' | 'after' }
+  | { kind: 'song'; songId: string; position: 'before' | 'after' }
   | { kind: 'folder'; folderId: string }
   | { kind: 'outside' }
   | null;
 
-function findFolderOf(folders: LibraryFolder[], songId: number): string | null {
+function findFolderOf(folders: LibraryFolder[], songId: string): string | null {
   const f = folders.find((fol) => fol.songIds.includes(songId));
   return f ? f.id : null;
 }
@@ -92,7 +92,7 @@ export function LibraryView({
 
   // 多选模式
   const [multiSelect, setMultiSelect] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
 
   // 拖拽状态
   const [ghost, setGhost] = useState<DragGhost | null>(null);
@@ -158,7 +158,7 @@ export function LibraryView({
     }
     const songCard = el.closest('[data-drop-song]') as HTMLElement | null;
     if (songCard) {
-      const sid = Number(songCard.dataset.dropSong);
+      const sid = songCard.dataset.dropSong || '';
       if (activeRef.current && sid && !activeRef.current.songIds.includes(sid)) {
         // 单首拖拽才参与重排序判定；多首拖到歌上视为创建/加入文件夹
         const rect = songCard.getBoundingClientRect();
@@ -173,7 +173,7 @@ export function LibraryView({
   }, [folders]);
 
   // 开启拖拽：记录待拖拽的歌曲集合
-  const startDragFor = useCallback((songIds: number[], fromFolderId: string | null, songs: Song[], pointerId: number, startX: number, startY: number, card: HTMLElement) => {
+  const startDragFor = useCallback((songIds: string[], fromFolderId: string | null, songs: Song[], pointerId: number, startX: number, startY: number, card: HTMLElement) => {
     pendingRef.current = {
       songIds,
       fromFolderId,
@@ -260,10 +260,10 @@ export function LibraryView({
 
       // 拖拽落定前，记录当前网格内所有卡片位置（供 FLIP 动画）
       const grid = active.card.closest('.library-grid');
-      const beforeRects = new Map<number, DOMRect>();
+      const beforeRects = new Map<string, DOMRect>();
       if (grid) {
         grid.querySelectorAll<HTMLElement>('[data-drop-song]').forEach((el) => {
-          const sid = Number(el.dataset.dropSong);
+          const sid = el.dataset.dropSong;
           if (sid) beforeRects.set(sid, el.getBoundingClientRect());
         });
       }
@@ -296,8 +296,8 @@ export function LibraryView({
       if (grid && beforeRects.size > 0) {
         requestAnimationFrame(() => {
           grid.querySelectorAll<HTMLElement>('[data-drop-song]').forEach((el) => {
-            const sid = Number(el.dataset.dropSong);
-            const before = beforeRects.get(sid);
+            const sid = el.dataset.dropSong;
+            const before = sid ? beforeRects.get(sid) : undefined;
             if (!before) return;
             const after = el.getBoundingClientRect();
             const dx = before.left - after.left;
@@ -377,10 +377,10 @@ export function LibraryView({
     }
   }, [onDeleteFolder, openFolderId]);
 
-  const songMap = useRef<Map<number, Song>>(new Map());
+  const songMap = useRef<Map<string, Song>>(new Map());
   songMap.current = new Map(library.map((s) => [s.id, s]));
 
-  const folderedIds = new Set<number>();
+  const folderedIds = new Set<string>();
   for (const f of folders) for (const id of f.songIds) folderedIds.add(id);
   const looseSongs = library.filter((s) => !folderedIds.has(s.id));
 

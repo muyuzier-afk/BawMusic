@@ -1,80 +1,66 @@
-import { Song, MusicInfo, LyricData, AudioQuality, LyricLine, LyricWord } from '@/types/music';
+import { Song, MusicInfo, LyricData, AudioQuality, LyricLine, LyricWord, MusicSource } from '@/types/music';
 import { normalizeMediaUrl } from '@/lib/media';
 import { useSyncExternalStore } from 'react';
 
 // ============================
-// API 源管理
+// ChKSz API Key 管理
 // ============================
-// Main (默认)：chksz.top —— chksz.top 自有 163 端点, GET 简单
-// Backup：t8.php + meting 混合 —— A(t8) 一次拿全含 tlyric, B(meting) 兜底有 playlist
-//
-// 切换源：setApiSource('main' | 'backup')，选择会持久化到 localStorage
-// 所有公共 API 都会先按当前源尝试，失败时自动降级到另一个源
+// apikey 由用户在首次进入界面时自行填写，持久化到 localStorage，
+// 之后可在「设置」中修改。所有请求都会携带 apikey 鉴权参数。
 
-export type ApiSource = 'main' | 'backup';
+const API_KEY_STORAGE_KEY = 'bawmusic.chkszApiKey';
 
-const SOURCE_KEY = 'bawmusic.apiSource';
+type ApiKeyListener = (key: string) => void;
+const apiKeyListeners = new Set<ApiKeyListener>();
 
-function readPersistedSource(): ApiSource {
-  if (typeof localStorage === 'undefined') return 'main';
-  const v = localStorage.getItem(SOURCE_KEY);
-  return v === 'backup' ? 'backup' : 'main';
+function readPersistedApiKey(): string {
+  if (typeof localStorage === 'undefined') return '';
+  try {
+    return localStorage.getItem(API_KEY_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
 }
 
-let currentSource: ApiSource = readPersistedSource();
+let currentApiKey = readPersistedApiKey();
 
-// 订阅机制：让所有 React 组件能实时感知源切换
-type ApiSourceListener = (source: ApiSource) => void;
-const apiSourceListeners = new Set<ApiSourceListener>();
-
-export function subscribeApiSource(listener: ApiSourceListener): () => void {
-  apiSourceListeners.add(listener);
+export function subscribeApiKey(listener: ApiKeyListener): () => void {
+  apiKeyListeners.add(listener);
   return () => {
-    apiSourceListeners.delete(listener);
+    apiKeyListeners.delete(listener);
   };
 }
 
-export function getApiSource(): ApiSource {
-  return currentSource;
+export function getApiKey(): string {
+  return currentApiKey;
 }
 
-export function setApiSource(s: ApiSource) {
-  if (currentSource === s) {
-    // 即使没变也保证 localStorage 写入
-    if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.setItem(SOURCE_KEY, s);
-      } catch {
-        // ignore quota errors
-      }
-    }
-    return;
-  }
-  currentSource = s;
+export function hasApiKey(): boolean {
+  return currentApiKey.trim().length > 0;
+}
+
+export function setApiKey(key: string) {
+  const next = key.trim();
+  currentApiKey = next;
   if (typeof localStorage !== 'undefined') {
     try {
-      localStorage.setItem(SOURCE_KEY, s);
+      localStorage.setItem(API_KEY_STORAGE_KEY, next);
     } catch {
       // ignore quota errors
     }
   }
-  apiSourceListeners.forEach((listener) => {
+  apiKeyListeners.forEach((listener) => {
     try {
-      listener(s);
+      listener(next);
     } catch {
       // ignore listener errors
     }
   });
 }
 
-export function getApiSourceLabel(s: ApiSource = currentSource): string {
-  return s === 'main' ? 'MAIN' : 'BACKUP';
-}
-
-export function getApiSourceDescription(s: ApiSource = currentSource): string {
-  return s === 'main'
-    ? 'MAIN · 速度较快'
-    : 'BACKUP · 兜底源';
+// 订阅机制：让所有 React 组件能实时感知 apikey 变化
+export function useApiKey(): string {
+  return useSyncExternalStore(subscribeApiKey, getApiKey, () => '');
 }
 
 // ============================
@@ -85,10 +71,17 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-// ============================
-// 来源 Main: chksz.top (GET query)
-// ============================
-// 响应壳: { code, msg, data: { ... } } 或 { data: { ... } } (playlist 接口裸 data)
+const API_BASE = 'https://api.chksz.com/api';
+
+function requireApiKey(): string {
+  const key = currentApiKey.trim();
+  if (!key) {
+    throw new Error('请先设置 ChKSz API Key（设置 → API Key）');
+  }
+  return key;
+}
+
+// 响应壳: { code, msg, data: { ... } } 或裸 { data: { ... } } (playlist 接口)
 function parseChkszData<T>(payload: unknown): T {
   if (!isObject(payload)) {
     throw new Error('Invalid API response');
@@ -111,11 +104,13 @@ function parseChkszData<T>(payload: unknown): T {
 }
 
 async function chkszGet<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
+  const key = requireApiKey();
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     qs.set(k, String(v));
   }
-  const url = `https://api.chksz.top/api/${endpoint}?${qs.toString()}`;
+  qs.set('apikey', key);
+  const url = `${API_BASE}/${endpoint}?${qs.toString()}`;
   let response: Response;
   try {
     response = await fetch(url);
@@ -123,14 +118,18 @@ async function chkszGet<T>(endpoint: string, params: Record<string, string | num
     throw new Error(err instanceof Error ? `Network error: ${err.message}` : 'Network error');
   }
   if (!response.ok) {
-    throw new Error(`chksz ${endpoint} failed: HTTP ${response.status}`);
+    throw new Error(`ChKSz ${endpoint} failed: HTTP ${response.status}`);
   }
   const payload: unknown = await response.json();
   return parseChkszData<T>(payload);
 }
 
+// ============================
+// 来源: 网易云 (163_search / 163_music / 163_lyric / 163_playlist)
+// ============================
+
 interface ChkszRawSong {
-  id: number;
+  id: number | string;
   name: string;
   artists?: string;
   artist?: string;
@@ -139,7 +138,7 @@ interface ChkszRawSong {
   duration?: number;
 }
 
-async function chkszSearch(keyword: string, limit: number, offset: number): Promise<Song[]> {
+async function neteaseSearch(keyword: string, limit: number, offset: number): Promise<Song[]> {
   const data = await chkszGet<{ songs?: ChkszRawSong[] } | ChkszRawSong[]>(
     '163_search',
     { keyword, limit, offset }
@@ -150,18 +149,19 @@ async function chkszSearch(keyword: string, limit: number, offset: number): Prom
     ? data.songs
     : [];
   return songs
-    .filter((s): s is ChkszRawSong => isObject(s) && typeof s.id === 'number' && typeof s.name === 'string')
+    .filter((s): s is ChkszRawSong => isObject(s) && typeof s.id !== 'undefined' && typeof s.name === 'string')
     .map((s) => ({
-      id: s.id,
+      id: String(s.id),
       name: s.name,
       artists: s.artists || s.artist || '',
       album: s.album || '',
-      picUrl: normalizeMediaUrl(s.picUrl)
+      picUrl: normalizeMediaUrl(s.picUrl),
+      source: 'netease' as const
     }));
 }
 
 interface ChkszRawMusicInfo {
-  id: number;
+  id: number | string;
   name: string;
   artists?: string;
   artist?: string;
@@ -174,13 +174,13 @@ interface ChkszRawMusicInfo {
   md5?: string;
 }
 
-async function chkszMusicInfo(id: number, level: AudioQuality): Promise<MusicInfo> {
+async function neteaseMusicInfo(id: string, level: AudioQuality): Promise<MusicInfo> {
   const raw = await chkszGet<ChkszRawMusicInfo>('163_music', { id, level, type: 'json' });
-  if (!isObject(raw) || typeof raw.id !== 'number' || typeof raw.name !== 'string' || typeof raw.url !== 'string') {
+  if (!isObject(raw) || typeof raw.name !== 'string' || typeof raw.url !== 'string') {
     throw new Error('Invalid music info payload');
   }
   return {
-    id: raw.id,
+    id: String(raw.id ?? id),
     name: raw.name,
     artists: raw.artists || raw.artist || '',
     album: raw.album || '',
@@ -189,7 +189,8 @@ async function chkszMusicInfo(id: number, level: AudioQuality): Promise<MusicInf
     br: typeof raw.br === 'number' ? raw.br : 0,
     level: typeof raw.level === 'string' ? raw.level : level,
     size: typeof raw.size === 'number' ? raw.size : 0,
-    md5: typeof raw.md5 === 'string' ? raw.md5 : ''
+    md5: typeof raw.md5 === 'string' ? raw.md5 : '',
+    source: 'netease' as const
   };
 }
 
@@ -209,7 +210,7 @@ function unwrapLrc(value: ChkszRawLyric['lrc']): string {
   return '';
 }
 
-async function chkszLyric(id: number): Promise<LyricData> {
+async function neteaseLyric(id: string): Promise<LyricData> {
   const raw = await chkszGet<ChkszRawLyric>('163_lyric', { id });
   return {
     lrc: unwrapLrc(raw?.lrc),
@@ -234,7 +235,7 @@ interface ChkszRawPlaylistData {
   tracks: ChkszRawPlaylistTrack[];
 }
 
-async function chkszPlaylist(id: string | number): Promise<PlaylistInfo> {
+async function neteasePlaylist(id: string): Promise<PlaylistInfo> {
   const data = await chkszGet<ChkszRawPlaylistData>('163_playlist', { id });
   if (!isObject(data) || !Array.isArray(data.tracks) || data.tracks.length === 0) {
     throw new Error('该歌单暂无歌曲或接口未返回曲目数据');
@@ -248,11 +249,12 @@ async function chkszPlaylist(id: string | number): Promise<PlaylistInfo> {
       const albumName = isObject(t.al) && typeof t.al.name === 'string' ? t.al.name : '';
       const picUrl = isObject(t.al) && typeof t.al.picUrl === 'string' ? normalizeMediaUrl(t.al.picUrl) : '';
       return {
-        id: t.id,
+        id: String(t.id),
         name: t.name,
         artists,
         album: albumName,
-        picUrl
+        picUrl,
+        source: 'netease' as const
       };
     });
   if (songs.length === 0) {
@@ -268,329 +270,251 @@ async function chkszPlaylist(id: string | number): Promise<PlaylistInfo> {
 }
 
 // ============================
-// 来源 Backup: t8.php (A) + meting (B)
+// 来源: 酷狗 (kugou_music) / QQ 音乐 (qq_music)
 // ============================
+// 这两个源为「点歌」接口：搜索返回列表（不包含直链），
+// 需携带歌曲 id/mid 再次请求才能拿到 url + lrc。解析结果做短期缓存，
+// 避免 getMusicInfo 与 getLyric 对同一首歌重复请求。
 
-// ---- A: t8.php (POST form-data, 一次拿全, 含 tlyric) ----
-const BACKUP_PRIMARY_API = 'https://dev.ciallo.pp.ua/music/t8.php';
-const BACKUP_FALLBACK_API = 'https://api.qijieya.cn/meting/';
-
-function mapQualityForT8(level: AudioQuality): string {
+function mapQualityToSize(level: AudioQuality): string {
   switch (level) {
-    case 'standard': return 'standard';
-    case 'exhigh': return 'exhigh';
+    case 'standard': return '128k';
+    case 'exhigh': return '320k';
     case 'hires': return 'hires';
-    case 'jymaster':
-    case 'sky':
-    case 'jyeffect': return 'hires';
+    case 'jymaster': return 'master';
     case 'lossless':
-    default: return 'lossless';
-  }
-}
-
-function mapQualityForMeting(level: AudioQuality): string {
-  switch (level) {
-    case 'hires':
-    case 'jymaster':
     case 'sky':
     case 'jyeffect':
-    case 'lossless': return '2000';
-    case 'exhigh':
-    case 'standard':
-    default: return '320';
+    default: return 'flac';
   }
 }
 
-function unwrapT8<T>(payload: unknown): T {
-  if (!isObject(payload)) throw new Error('Invalid API response');
-  if (payload.success === false) {
-    const msg = typeof payload.message === 'string' ? payload.message : 'API request failed';
-    throw new Error(msg);
-  }
-  if (!isObject(payload.data)) throw new Error('Empty response payload');
-  const inner = payload.data as { data?: T };
-  if (!('data' in inner)) throw new Error('Missing inner data field');
-  return inner.data as T;
+interface KugouSearchResponse {
+  list?: KugouRawSong[];
 }
 
-function trackT8RateLimit(response: Response) {
-  const remaining = response.headers.get('X-RateLimit-Remaining');
-  if (remaining !== null) {
-    const n = parseInt(remaining, 10);
-    if (!Number.isNaN(n) && n >= 0 && n < 5) {
-      // eslint-disable-next-line no-console
-      console.warn(`[t8] 速率限制即将耗尽: 剩余 ${n} 次`);
+interface KugouRawSong {
+  id?: string;
+  name?: string;
+  singer?: string;
+  album?: string;
+  duration?: number;
+}
+
+async function kugouSearch(keyword: string, limit: number): Promise<Song[]> {
+  const data = await chkszGet<KugouSearchResponse>('kugou_music', { msg: keyword, type: 'json' });
+  const list: KugouRawSong[] = Array.isArray(data?.list) ? data.list : [];
+  const songs: Song[] = [];
+  for (const s of list) {
+    if (!isObject(s)) continue;
+    const id = s.id;
+    const name = s.name;
+    if (typeof id === 'undefined' || typeof name !== 'string') continue;
+    songs.push({
+      id: String(id),
+      name,
+      artists: typeof s.singer === 'string' ? s.singer : '',
+      album: typeof s.album === 'string' ? s.album : '',
+      picUrl: '',
+      source: 'kugou'
+    });
+  }
+  return songs.slice(0, limit);
+}
+
+interface KugouParseResult {
+  id?: string;
+  name?: string;
+  singer?: string;
+  album?: string;
+  url?: string;
+  cover?: string;
+  lrc?: string;
+  format?: string;
+}
+
+async function doKugouParse(id: string, level: AudioQuality): Promise<{ music: MusicInfo; lrc: string }> {
+  const raw = await chkszGet<KugouParseResult>('kugou_music', { id, size: mapQualityToSize(level), type: 'json' });
+  if (!raw || typeof raw !== 'object' || typeof raw.url !== 'string' || typeof raw.name !== 'string') {
+    throw new Error('酷狗歌曲解析失败');
+  }
+  return {
+    music: {
+      id: String(raw.id ?? id),
+      name: raw.name,
+      artists: typeof raw.singer === 'string' ? raw.singer : '',
+      album: typeof raw.album === 'string' ? raw.album : '',
+      picUrl: normalizeMediaUrl(typeof raw.cover === 'string' ? raw.cover : ''),
+      url: normalizeMediaUrl(raw.url),
+      br: 0,
+      level: typeof raw.format === 'string' ? raw.format : mapQualityToSize(level),
+      size: 0,
+      md5: '',
+      source: 'kugou'
+    },
+    lrc: typeof raw.lrc === 'string' ? raw.lrc : ''
+  };
+}
+
+interface QqSearchResponse {
+  list?: QqRawSong[];
+}
+
+interface QqRawSong {
+  mid?: string;
+  name?: string;
+  singer?: string;
+  album?: string;
+  pay?: string;
+}
+
+async function qqSearch(keyword: string, limit: number): Promise<Song[]> {
+  const data = await chkszGet<QqSearchResponse>('qq_music', { msg: keyword, num: limit, type: 'json' });
+  const list: QqRawSong[] = Array.isArray(data?.list) ? data.list : [];
+  const songs: Song[] = [];
+  for (const s of list) {
+    if (!isObject(s)) continue;
+    const mid = s.mid;
+    const name = s.name;
+    if (typeof mid === 'undefined' || typeof name !== 'string') continue;
+    songs.push({
+      id: String(mid),
+      name,
+      artists: typeof s.singer === 'string' ? s.singer : '',
+      album: typeof s.album === 'string' ? s.album : '',
+      picUrl: '',
+      source: 'qq'
+    });
+  }
+  return songs.slice(0, limit);
+}
+
+interface QqParseResult {
+  mid?: string;
+  name?: string;
+  singer?: string;
+  album?: string;
+  url?: string;
+  cover?: string;
+  lrc?: string;
+  format?: string;
+}
+
+async function doQqParse(id: string, level: AudioQuality): Promise<{ music: MusicInfo; lrc: string }> {
+  const raw = await chkszGet<QqParseResult>('qq_music', { mid: id, size: mapQualityToSize(level), type: 'json' });
+  if (!raw || typeof raw !== 'object' || typeof raw.url !== 'string' || typeof raw.name !== 'string') {
+    throw new Error('QQ 音乐歌曲解析失败');
+  }
+  return {
+    music: {
+      id: String(raw.mid ?? id),
+      name: raw.name,
+      artists: typeof raw.singer === 'string' ? raw.singer : '',
+      album: typeof raw.album === 'string' ? raw.album : '',
+      picUrl: normalizeMediaUrl(typeof raw.cover === 'string' ? raw.cover : ''),
+      url: normalizeMediaUrl(raw.url),
+      br: 0,
+      level: typeof raw.format === 'string' ? raw.format : mapQualityToSize(level),
+      size: 0,
+      md5: '',
+      source: 'qq'
+    },
+    lrc: typeof raw.lrc === 'string' ? raw.lrc : ''
+  };
+}
+
+// ---- 解析缓存：source:id:size -> { result, expires }，10 分钟有效 ----
+interface ParseCacheEntry {
+  result: { music: MusicInfo; lrc: string };
+  expires: number;
+}
+
+const parseCache = new Map<string, ParseCacheEntry>();
+const PARSE_CACHE_TTL = 10 * 60 * 1000;
+
+async function cachedParse(
+  key: string,
+  fetcher: () => Promise<{ music: MusicInfo; lrc: string }>
+): Promise<{ music: MusicInfo; lrc: string }> {
+  const hit = parseCache.get(key);
+  if (hit && hit.expires > Date.now()) return hit.result;
+  const result = await fetcher();
+  parseCache.set(key, { result, expires: Date.now() + PARSE_CACHE_TTL });
+  if (parseCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of parseCache) {
+      if (v.expires <= now) parseCache.delete(k);
     }
   }
+  return result;
 }
 
-async function t8Request<T>(action: string, params: Record<string, string>): Promise<T> {
-  const formData = new FormData();
-  for (const [k, v] of Object.entries(params)) formData.append(k, v);
-  let response: Response;
-  try {
-    response = await fetch(`${BACKUP_PRIMARY_API}?action=${action}`, { method: 'POST', body: formData });
-  } catch (err) {
-    throw new Error(err instanceof Error ? `Network error: ${err.message}` : 'Network error');
+// ============================
+// 公共 API
+// ============================
+
+export async function searchSongs(
+  keyword: string,
+  limit = 30,
+  offset = 0,
+  source: MusicSource = 'netease'
+): Promise<Song[]> {
+  if (source === 'kugou') return kugouSearch(keyword, limit);
+  if (source === 'qq') return qqSearch(keyword, limit);
+  return neteaseSearch(keyword, limit, offset);
+}
+
+export async function getMusicInfo(
+  id: string | number,
+  level: AudioQuality = 'lossless',
+  source: MusicSource = 'netease'
+): Promise<MusicInfo> {
+  const sid = String(id);
+  if (source === 'kugou') {
+    return (await cachedParse(`kugou:${sid}:${level}`, () => doKugouParse(sid, level))).music;
   }
-  trackT8RateLimit(response);
-  if (!response.ok) throw new Error(`t8 ${action} failed: HTTP ${response.status}`);
-  return unwrapT8<T>(await response.json());
+  if (source === 'qq') {
+    return (await cachedParse(`qq:${sid}:${level}`, () => doQqParse(sid, level))).music;
+  }
+  return neteaseMusicInfo(sid, level);
 }
 
-interface T8SearchItem {
+export async function getLyric(id: string | number, source: MusicSource = 'netease'): Promise<LyricData> {
+  const sid = String(id);
+  if (source === 'kugou') {
+    const parsed = await cachedParse(`kugou:${sid}:lossless`, () => doKugouParse(sid, 'lossless'));
+    return { lrc: parsed.lrc, tlyric: '', romalrc: '', klyric: '' };
+  }
+  if (source === 'qq') {
+    const parsed = await cachedParse(`qq:${sid}:lossless`, () => doQqParse(sid, 'lossless'));
+    return { lrc: parsed.lrc, tlyric: '', romalrc: '', klyric: '' };
+  }
+  return neteaseLyric(sid);
+}
+
+export interface PlaylistInfo {
   id: number;
   name: string;
-  artists: string;
-  artist_string?: string;
-  album: string;
-  picUrl: string;
-}
-async function t8Search(keyword: string, limit: number): Promise<T8SearchItem[]> {
-  return t8Request<T8SearchItem[]>('search', { keyword, limit: String(limit) });
+  coverImgUrl: string;
+  trackCount: number;
+  songs: Song[];
 }
 
-interface T8ParseResult {
-  id: string;
-  name: string;
-  ar_name: string;
-  al_name: string;
-  pic: string;
-  url: string;
-  level: string;
-  quality: string;
-  size: string;
-  lyric: string;
-  tlyric: string;
-}
-async function t8Parse(id: number | string, level: AudioQuality): Promise<T8ParseResult> {
-  return t8Request<T8ParseResult>('parse', { url: String(id), level: mapQualityForT8(level) });
+export async function fetchPlaylist(playlistId: string | number): Promise<PlaylistInfo> {
+  return neteasePlaylist(String(playlistId));
 }
 
-// ---- B: meting (GET query, 有 playlist / tencent) ----
-interface MetingSong {
-  name: string;
-  artist: string;
-  url: string;
-  pic: string;
-  lrc: string;
-}
-
-async function metingGetList(
-  type: 'song' | 'search' | 'playlist',
-  params: Record<string, string>
-): Promise<MetingSong[]> {
-  const qs = new URLSearchParams({ type, server: 'netease', ...params });
-  let response: Response;
+export function extractPlaylistId(input: string): string | null {
+  const trimmed = input.trim();
+  if (/^\d+$/.test(trimmed)) return trimmed;
   try {
-    response = await fetch(`${BACKUP_FALLBACK_API}?${qs.toString()}`);
-  } catch (err) {
-    throw new Error(err instanceof Error ? `Network error: ${err.message}` : 'Network error');
-  }
-  if (!response.ok) throw new Error(`meting ${type} failed: HTTP ${response.status}`);
-  const json: unknown = await response.json();
-  if (!Array.isArray(json)) throw new Error('Invalid meting response');
-  return json as MetingSong[];
-}
-
-async function metingGetText(url: string): Promise<string> {
-  let response: Response;
-  try {
-    response = await fetch(url);
-  } catch (err) {
-    throw new Error(err instanceof Error ? `Network error: ${err.message}` : 'Network error');
-  }
-  if (!response.ok) throw new Error(`meting sub-request failed: HTTP ${response.status}`);
-  return response.text();
-}
-
-function extractIdFromMetingUrl(url: string): number {
-  try {
-    const u = new URL(url);
-    const id = u.searchParams.get('id');
-    return id ? Number(id) : 0;
+    const url = new URL(trimmed);
+    const id = url.searchParams.get('id');
+    if (id && /^\d+$/.test(id)) return id;
   } catch {
-    return 0;
+    // ignore invalid URL
   }
-}
-
-function parseSizeToBytes(size: string): number {
-  const m = size.match(/^([\d.]+)\s*(KB|MB|GB)?$/i);
-  if (!m) return 0;
-  const n = parseFloat(m[1]);
-  if (Number.isNaN(n)) return 0;
-  const unit = (m[2] || 'MB').toUpperCase();
-  if (unit === 'GB') return Math.round(n * 1024 * 1024);
-  if (unit === 'KB') return Math.round(n);
-  return Math.round(n * 1024);
-}
-
-// ---- Backup 高层: A 优先, B 兜底 ----
-async function backupSearch(keyword: string, limit: number): Promise<Song[]> {
-  // B 优先
-  try {
-    const list = await metingGetList('search', { id: keyword, limit: String(limit) });
-    if (list.length > 0) {
-      return list.map((item) => ({
-        id: extractIdFromMetingUrl(item.url),
-        name: item.name,
-        artists: item.artist,
-        album: '',
-        picUrl: item.pic
-      }));
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[backup] meting search failed, falling back to t8:', err);
-  }
-  // A 兜底
-  const list = await t8Search(keyword, limit);
-  return list.map((item) => ({
-    id: item.id,
-    name: item.name,
-    artists: item.artists || item.artist_string || '',
-    album: item.album || '',
-    picUrl: normalizeMediaUrl(item.picUrl)
-  }));
-}
-
-async function backupMusicInfo(id: number, level: AudioQuality): Promise<MusicInfo> {
-  // A 优先
-  try {
-    const r = await t8Parse(id, level);
-    return {
-      id: Number(r.id) || id,
-      name: r.name,
-      artists: r.ar_name || '',
-      album: r.al_name || '',
-      picUrl: normalizeMediaUrl(r.pic),
-      url: normalizeMediaUrl(r.url),
-      br: 0,
-      level: r.level || mapQualityForT8(level),
-      size: parseSizeToBytes(r.size),
-      md5: ''
-    };
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[backup] t8 parse failed, falling back to meting:', err);
-  }
-  // B 兜底
-  const list = await metingGetList('song', { id: String(id) });
-  if (list.length === 0) throw new Error('未找到该歌曲');
-  const song = list[0];
-  return {
-    id,
-    name: song.name,
-    artists: song.artist,
-    album: '',
-    picUrl: song.pic,
-    url: song.url,
-    br: Number(mapQualityForMeting(level)) * 1000,
-    level: mapQualityForT8(level),
-    size: 0,
-    md5: ''
-  };
-}
-
-async function backupLyric(id: number): Promise<LyricData> {
-  // A 优先
-  try {
-    const r = await t8Parse(id, 'lossless');
-    return { lrc: r.lyric || '', tlyric: r.tlyric || '' };
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[backup] t8 parse failed, falling back to meting:', err);
-  }
-  // B 兜底
-  try {
-    const list = await metingGetList('song', { id: String(id) });
-    if (list.length === 0) return { lrc: '', tlyric: '' };
-    const lrc = await metingGetText(list[0].lrc);
-    return { lrc, tlyric: '' };
-  } catch {
-    return { lrc: '', tlyric: '' };
-  }
-}
-
-async function backupPlaylist(id: string | number): Promise<PlaylistInfo> {
-  // B 是唯一有 playlist 端点的源
-  const list = await metingGetList('playlist', { id: String(id), limit: '1000' });
-  if (list.length === 0) throw new Error('该歌单暂无歌曲或接口未返回数据');
-  return {
-    id: Number(id) || 0,
-    name: `歌单 ${id}`,
-    coverImgUrl: '',
-    trackCount: list.length,
-    songs: list.map((item) => ({
-      id: extractIdFromMetingUrl(item.url),
-      name: item.name,
-      artists: item.artist,
-      album: '',
-      picUrl: item.pic
-    }))
-  };
-}
-
-// ============================
-// 公共 API (按当前源路由, 失败自动降级)
-// ============================
-
-export async function searchSongs(keyword: string, limit = 30, offset = 0): Promise<Song[]> {
-  if (currentSource === 'main') {
-    try {
-      return await chkszSearch(keyword, limit, offset);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[searchSongs] main failed, falling back to backup:', err);
-    }
-  } else {
-    try {
-      return await backupSearch(keyword, limit);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[searchSongs] backup failed, falling back to main:', err);
-    }
-  }
-  // 跨源降级
-  return currentSource === 'main' ? backupSearch(keyword, limit) : chkszSearch(keyword, limit, offset);
-}
-
-export async function getMusicInfo(id: number, level: AudioQuality = 'lossless'): Promise<MusicInfo> {
-  if (currentSource === 'main') {
-    try {
-      return await chkszMusicInfo(id, level);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[getMusicInfo] main failed, falling back to backup:', err);
-    }
-  } else {
-    try {
-      return await backupMusicInfo(id, level);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[getMusicInfo] backup failed, falling back to main:', err);
-    }
-  }
-  return currentSource === 'main' ? backupMusicInfo(id, level) : chkszMusicInfo(id, level);
-}
-
-export async function getLyric(id: number): Promise<LyricData> {
-  if (currentSource === 'main') {
-    try {
-      return await chkszLyric(id);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[getLyric] main failed, falling back to backup:', err);
-    }
-  } else {
-    try {
-      return await backupLyric(id);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[getLyric] backup failed, falling back to main:', err);
-    }
-  }
-  return currentSource === 'main' ? backupLyric(id) : chkszLyric(id);
+  return null;
 }
 
 // ============================
@@ -642,12 +566,10 @@ function parseKlyric(klyric: string): Map<string, { time: number; words: LyricWo
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // 逐字行：以时间标签开头，后续是 "词[时间]词[时间]..." 的交错结构
     const firstMatch = timeRegex.exec(trimmed);
     if (!firstMatch) continue;
     timeRegex.lastIndex = 0;
 
-    // 收集所有 [time] 位置
     const stamps: { time: number; index: number }[] = [];
     let m: RegExpExecArray | null;
     while ((m = timeRegex.exec(trimmed)) !== null) {
@@ -663,8 +585,6 @@ function parseKlyric(klyric: string): Map<string, { time: number; words: LyricWo
     for (let i = 0; i < stamps.length; i++) {
       const start = stamps[i].time;
       const textStart = stamps[i].index;
-      const textEnd = i + 1 < stamps.length ? stamps[i + 1].index - stamps[i + 1].time.toString().length : trimmed.length;
-      // 实际上 textEnd 应取下一个时间标签的起始位置（含 [）
       const nextTagStart = i + 1 < stamps.length
         ? trimmed.lastIndexOf('[', stamps[i + 1].index - 1)
         : trimmed.length;
@@ -702,64 +622,4 @@ export function parseLyric(lrc: string, tlyric = '', klyric = ''): LyricLine[] {
       words: klyricLine?.words,
     };
   });
-}
-
-// ============================
-// Playlist import
-// ============================
-
-export interface PlaylistInfo {
-  id: number;
-  name: string;
-  coverImgUrl: string;
-  trackCount: number;
-  songs: Song[];
-}
-
-export async function fetchPlaylist(playlistId: string | number): Promise<PlaylistInfo> {
-  if (currentSource === 'main') {
-    try {
-      return await chkszPlaylist(playlistId);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[fetchPlaylist] main failed, falling back to backup:', err);
-    }
-  } else {
-    try {
-      return await backupPlaylist(playlistId);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[fetchPlaylist] backup failed, falling back to main:', err);
-    }
-  }
-  return currentSource === 'main' ? backupPlaylist(playlistId) : chkszPlaylist(playlistId);
-}
-
-export function extractPlaylistId(input: string): string | null {
-  const trimmed = input.trim();
-  if (/^\d+$/.test(trimmed)) return trimmed;
-  try {
-    const url = new URL(trimmed);
-    const id = url.searchParams.get('id');
-    if (id && /^\d+$/.test(id)) return id;
-  } catch {
-    // ignore invalid URL
-  }
-  return null;
-}
-
-// ============================
-// React 集成：保证 UI 与模块级 currentSource 始终一致
-// ============================
-// 修复：刷新页面后 React state 与 模块级 currentSource 不一致的 bug。
-// 旧实现 useState(() => getApiSource()) 会在 SSR 渲染时取 'main'，客户端 hydrate 时
-// 直接复用该 state，导致 UI 与实际 API 行为不同步。
-// 这里用 useSyncExternalStore 把 React state 绑定到 currentSource 的订阅上。
-
-export function useApiSource(): ApiSource {
-  return useSyncExternalStore(
-    subscribeApiSource,
-    getApiSource,
-    () => 'main'
-  );
 }
