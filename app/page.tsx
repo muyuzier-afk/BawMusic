@@ -21,7 +21,7 @@ import { ListIcon, ImportIcon, SearchIcon } from '@/components/Icons';
 import { normalizeMediaUrl } from '@/lib/media';
 import { downloadSongAtQuality } from '@/lib/download';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
-import { fetchPlaylist, extractPlaylistId, useApiKey, setApiKey, hasApiKey } from '@/lib/api';
+import { fetchPlaylist, extractPlaylistId, setApiKey, hasApiKey } from '@/lib/api';
 import buildInfo from '@/lib/build-info.json';
 import versionsData from '@/versions.json';
 import type { BuildInfo, VersionsFile } from '@/lib/build-info-types';
@@ -106,7 +106,6 @@ export default function MusicPlayer() {
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
   // ChKSz API Key：首次进入引导填写，localStorage 持久化，可在设置中修改
-  const apiKey = useApiKey();
   const [apiKeyHydrated, setApiKeyHydrated] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const [apiKeyDraft, setApiKeyDraft] = useState('');
@@ -1048,19 +1047,32 @@ export default function MusicPlayer() {
                 </button>
               )}
               {apiKeyHydrated && (
-                <button
-                  type="button"
-                  className={`about-mini-toggle ${hasApiKey() ? 'active' : ''}`}
-                  onClick={() => {
-                    setApiKeyDraft(hasApiKey() ? apiKey : '');
-                    setApiKeyDialogOpen(true);
-                  }}
-                >
-                  <span className="about-mini-toggle-label">API Key</span>
-                  <span className={`about-mini-toggle-switch ${hasApiKey() ? 'on' : ''}`} aria-hidden="true">
-                    <span className="about-mini-toggle-knob" />
-                  </span>
-                </button>
+                <div className="about-apikey">
+                  <label className="about-apikey-label" htmlFor="about-apikey-input">
+                    ChKSz API Key
+                  </label>
+                  <div className="import-field apikey-field">
+                    <input
+                      id="about-apikey-input"
+                      className="import-input"
+                      type="password"
+                      placeholder="粘贴你的 ChKSz API Key"
+                      value={apiKeyDraft}
+                      onChange={(e) => setApiKeyDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveApiKey();
+                      }}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                    />
+                    <button className="import-btn" onClick={handleSaveApiKey}>
+                      保存
+                    </button>
+                  </div>
+                  {hasApiKey() && <p className="about-apikey-status">Key 已保存在本地</p>}
+                </div>
               )}
             </div>
           </section>

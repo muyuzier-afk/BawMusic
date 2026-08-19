@@ -1321,6 +1321,36 @@ body.better-styles .playlist-checkbox.checked {
   background: #1a1a1a;
 }
 
+/* ChKSz API Key：设置面板内嵌输入框（非滑块） */
+.about-apikey {
+  margin-top: 14px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  text-align: left;
+}
+
+.about-apikey-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  padding-left: 2px;
+}
+
+.about-apikey .import-field {
+  margin-top: 0;
+}
+
+.about-apikey-status {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(130, 220, 160, 0.9);
+  padding-left: 2px;
+  text-align: left;
+}
+
 /* BawMusic 标题可点击反馈（连击 5 次解锁开发者模式） */
 .about-mini-title-clickable {
   cursor: pointer;
