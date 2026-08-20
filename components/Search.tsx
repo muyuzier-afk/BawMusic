@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Song, MusicSource } from '@/types/music';
+import { Song } from '@/types/music';
 import { searchSongs } from '@/lib/api';
 import { normalizeMediaUrl } from '@/lib/media';
 import { PLACEHOLDER_COVER } from '@/lib/cover';
 import { SearchIcon, CloseIcon } from './Icons';
-import { SourcePicker } from './SourcePicker';
 
 interface SearchBarProps {
   onSongSelect: (song: Song) => void;
@@ -19,7 +18,6 @@ export function SearchBar({ onSongSelect, localSource }: SearchBarProps) {
   const [suggestions, setSuggestions] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [source, setSource] = useState<MusicSource>('netease');
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,7 +71,7 @@ export function SearchBar({ onSongSelect, localSource }: SearchBarProps) {
     setIsLoading(true);
 
     try {
-      const results = await searchSongs(q, 5, 0, source);
+      const results = await searchSongs(q, 5, 0);
       if (currentRequestId !== requestIdRef.current) return;
 
       setSuggestions(results.slice(0, 5));
@@ -86,7 +84,7 @@ export function SearchBar({ onSongSelect, localSource }: SearchBarProps) {
 
       setIsLoading(false);
     }
-  }, [source]);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -161,11 +159,6 @@ export function SearchBar({ onSongSelect, localSource }: SearchBarProps) {
 
   return (
     <div className="search-container" ref={containerRef} style={{ position: 'relative', zIndex: 1000 }}>
-      {!isLocalMode && (
-        <div className="search-source-row">
-          <SourcePicker value={source} onChange={setSource} />
-        </div>
-      )}
       <span className="search-icon">
         <SearchIcon />
       </span>
